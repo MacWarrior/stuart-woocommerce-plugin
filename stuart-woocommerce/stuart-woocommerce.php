@@ -483,9 +483,8 @@ class Stuart implements MainPluginController
 
         if ($this->review_order == true) {
             return;
-        } else {
-            $this->review_order = true;
         }
+        $this->review_order = true;
 
         // WooFunnel workaround
         if (isset($_GET['wfacp_is_checkout_override']) && isset($_GET['wc-ajax']) && $_GET['wc-ajax'] == "update_order_review" && $_GET['wfacp_is_checkout_override'] == "yes") {
@@ -578,6 +577,18 @@ class Stuart implements MainPluginController
 
         if ($delivery->getOption('debug_mode') == "yes") {
             $delivery->addLog('reviewOrderAfterShipping:timeList', $time_list);
+        }
+
+        $stuart_available = false;
+        $available_methods = WC()->shipping->packages[0]['rates'];
+        foreach($available_methods AS $available_method){
+            if( is_object($available_method) && $available_method->method_id == 'StuartShippingMethod' ){
+                $stuart_available = true;
+            }
+        }
+
+        if( !$stuart_available ){
+            return;
         }
 
         if (file_exists(get_template_directory().'/plugins/stuart/templates/after_shipping.php')) {
