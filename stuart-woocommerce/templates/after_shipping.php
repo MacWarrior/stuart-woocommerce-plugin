@@ -93,9 +93,15 @@
 			<div id="stuart_delivery_wrapper" style="display:none;margin: 5px 0px;">
 				<div style="display: inline;" class="stuart_delivery_date">
 					<select onchange="setTimeSlots(event)" name="stuart_date" id="stuart_date" data-server-time="<?php echo esc_html($server_time); ?>">
-						<?php foreach ($time_list as $i=>$time) {
-    echo '<option '.($i === 0 ? 'selected' : '').' data-time-day="'.esc_html($delivery->formatToDate('Y/m/d', $delivery->getTime($time['day']))).'" data-time-before="'.esc_html($time['before']).'" data-time-after="'.esc_html($time['after']).'"  data-start-pause="'.esc_html($time['pause_start']).'" data-end-pause="'.esc_html($time['pause_end']).'" value="'.esc_html($time['day']).'">'.esc_html($delivery->formatToDate('d/m', $delivery->getTime($time['day']))).'</option>';
-} ?>
+						<?php
+                        foreach ($time_list as $i=>$time) {
+                            if( date('Y/m/d') == $delivery->formatToDate('Y/m/d', $delivery->getTime($time['day'])) && $time['before'] <= date('H:i') ){
+                                continue;
+                            }
+
+                            echo '<option '.($i === 0 ? 'selected' : '').' data-time-day="'.esc_html($delivery->formatToDate('Y/m/d', $delivery->getTime($time['day']))).'" data-time-before="'.esc_html($time['before']).'" data-time-after="'.esc_html($time['after']).'"  data-start-pause="'.esc_html($time['pause_start']).'" data-end-pause="'.esc_html($time['pause_end']).'" value="'.esc_html($time['day']).'">'.esc_html($delivery->formatToDate('d/m', $delivery->getTime($time['day']))).'</option>';
+                        }
+                        ?>
 					</select>
 				</div>
 				<div style="display: inline;" class="stuart_delivery_at">
