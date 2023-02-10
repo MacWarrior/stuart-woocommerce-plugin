@@ -580,11 +580,10 @@ class Stuart implements MainPluginController
         }
 
         $stuart_available = false;
-        $available_methods = WC()->shipping->packages[0]['rates'];
-        foreach($available_methods AS $available_method){
-            if( is_object($available_method) && $available_method->method_id == 'StuartShippingMethod' ){
-                $stuart_available = true;
-            }
+        $selected_method = WC()->session->get('chosen_shipping_methods');
+
+        if( strpos($selected_method[0], 'stuart') !== false ){
+            $stuart_available = true;
         }
 
         if( !$stuart_available ){
