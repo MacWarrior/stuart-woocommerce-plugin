@@ -165,6 +165,10 @@
 					const timeSelection = document.querySelector('#stuart_time');
 					timeSelection.innerHTML = '';
     				timeSlots.forEach((timeSlot, index) => {
+                        if(timeSlots[index+1] === undefined){
+                            return;
+                        }
+
 						timeSelection.append(new Option(`${addZero(timeSlot.getHours())}:${addZero(timeSlot.getMinutes())} - ${addZero(timeSlots[index+1].getHours())}:${addZero(timeSlots[index+1].getMinutes())}`, Math.round(timeSlot.getTime()/1000)));
 					}) 
 				}
