@@ -1858,6 +1858,11 @@ if (! class_exists('StuartShippingMethod')) {
                 }
             }
 
+            // If pickup time is outdated, then create new pickup time asap
+            if( $pickup_time < time() ){
+                $pickup_time = time() + 60;
+            }
+
             $this->setPickupTime($pickup_time, $order_id);
 
             if ($creation === true && !empty($order_id)) {
