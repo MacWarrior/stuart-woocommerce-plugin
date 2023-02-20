@@ -673,13 +673,12 @@ if (! class_exists('StuartShippingMethod')) {
             return true;
         }
 
-        private function getPickupAddress($delivery_address = array())
+        private function getPickupAddress()
         {
             if ($this->getOption('address') && $this->getOption('city') && $this->getOption('postcode')) {
                 return $this->getOption('address').' , '.($this->getOption('address_2') ? $this->getOption('address_2').' , ' : '').$this->getOption('city').' '.$this->getOption('postcode');
-            } else {
-                return false;
             }
+            return false;
         }
 
         public function calculate_shipping($package = array())
@@ -698,46 +697,47 @@ if (! class_exists('StuartShippingMethod')) {
                 $this->addLog('calculate_shipping::package', $package);
             }
 
-            $job_price = (float) $this->getJobPricing($package);
-
-            if (empty($job_price)) {
-                return;
-            }
-
-            $free_shipping = (float) $this->getOption('free_shipping', $package);
-            
-            $cart = $stuart->getCart();
-            $cart_total_price = (float) $cart->get_cart_contents_total() + (float) $cart->get_cart_contents_tax();
-
-            if (!empty($free_shipping) && $cart_total_price >= $free_shipping) {
-                $price = 0.00;
+            $price_type = $this->getOption('price_type', $package);
+            if( $price_type == 'fixed' ){
+                $price = (float) $this->getOption('fixed_fee', $package);
             } else {
-                switch ($this->getOption('price_type', $package)) {
-                    case 'autocalculated':
-                        $price = $job_price;
-                        break;
-                    case 'fixed':
-                        $price = (float) $this->getOption('fixed_fee', $package);
-                        break;
-                    case 'add_over_stuart':
-                        $price = $job_price;
-                        $percentage = (float) $this->getOption('extra_price', $package);
-                        if ($percentage > 0.00) {
-                            $percentaged_price = $price * ($percentage / 100);
-                            $price += $percentaged_price;
-                        }
-                        break;
-                    case 'discount_from_stuart':
-                        $price = $job_price;
-                        $percentage = (float) $this->getOption('discount_price', $package);
-                        if ($percentage > 0.00) {
-                            $percentaged_price = $price * ($percentage / 100);
-                            $price -= $percentaged_price;
-                        }
-                        break;
-                    default:
-                        return;
-                        break;
+                $job_price = (float) $this->getJobPricing($package);
+
+                if (empty($job_price)) {
+                    return;
+                }
+
+                $free_shipping = (float) $this->getOption('free_shipping', $package);
+
+                $cart = $stuart->getCart();
+                $cart_total_price = (float) $cart->get_cart_contents_total() + (float) $cart->get_cart_contents_tax();
+
+                if (!empty($free_shipping) && $cart_total_price >= $free_shipping) {
+                    $price = 0.00;
+                } else {
+                    switch ($this->getOption('price_type', $package)) {
+                        case 'autocalculated':
+                            $price = $job_price;
+                            break;
+                        case 'add_over_stuart':
+                            $price = $job_price;
+                            $percentage = (float) $this->getOption('extra_price', $package);
+                            if ($percentage > 0.00) {
+                                $percentaged_price = $price * ($percentage / 100);
+                                $price += $percentaged_price;
+                            }
+                            break;
+                        case 'discount_from_stuart':
+                            $price = $job_price;
+                            $percentage = (float) $this->getOption('discount_price', $package);
+                            if ($percentage > 0.00) {
+                                $percentaged_price = $price * ($percentage / 100);
+                                $price -= $percentaged_price;
+                            }
+                            break;
+                        default:
+                            return;
+                    }
                 }
             }
 
@@ -786,23 +786,6 @@ if (! class_exists('StuartShippingMethod')) {
             $obj = $this->makeApiRequest($url, false, $params);
 
             return $obj;
-        }
-
-        public function doPickupTest()
-        {
-            $pickup_address = $this->getPickupAddress();
-
-            if ((bool) $pickup_address === false) {
-                return false;
-            } else {
-                $url = '/v2/addresses/validate?address='.urlencode($pickup_address).'&type=picking';
-
-                $token = $this->setStuartAuth();
-
-                $obj = $this->makeApiRequest($url, $token);
-        
-                return $obj;
-            }
         }
 
         public function setStuartAuth($refresh = false, $return_object = false)
@@ -1308,9 +1291,9 @@ if (! class_exists('StuartShippingMethod')) {
                 $this->setPickupTime($pickup_date);
             }
 
-            if (empty($address_1)) {
+            /*if (empty($address_1)) {
                 return false;
-            }
+            }*/
 
             $address_str = $address_1.' , '.$postcode.' '.$city;
             
@@ -1331,7 +1314,7 @@ if (! class_exists('StuartShippingMethod')) {
                     }
                 }
 
-                $origin_string = $this->getPickupAddress(array('city' => $city, 'address1' => $address_1, 'address2' => $address_2, 'postcode' => $postcode, 'country' => $country));
+                $origin_string = $this->getPickupAddress();
             }
 
             if (empty($origin_string)) {
@@ -1433,7 +1416,6 @@ if (! class_exists('StuartShippingMethod')) {
             if (!empty($time_list)) {
                 foreach ($time_list as $key => $value) {
                     return $value;
-                    break;
                 }
             }
 
@@ -1868,30 +1850,19 @@ if (! class_exists('StuartShippingMethod')) {
             if ($creation === true && !empty($order_id)) {
                 $job_creation = $this->createJob($order_id);
             }
-      
-            if ($order_id) {
-                $object = new WC_Order($order_id);
-            } else {
-                $object = $this->getCart();
-            }
 
             $this->addLog("rescheduleJob::pickup_time", $pickup_time);
-
-            $price = $this->getJobPricing($object);
 
             if ($job_creation !== false) {
                 $order = wc_get_order($order_id);
                 $note = esc_html__('The delivery was created on Stuart', 'stuart-delivery');
                 $order->add_order_note($note);
                 return true;
-            } else {
-                $order = wc_get_order($order_id);
-                $note = esc_html__('There was a problem creating the delivery on Stuart', 'stuart-delivery');
-                $order->add_order_note($note);
-                return false;
             }
-
-            return $price;
+            $order = wc_get_order($order_id);
+            $note = esc_html__('There was a problem creating the delivery on Stuart', 'stuart-delivery');
+            $order->add_order_note($note);
+            return false;
         }
 
         public function getJobId($order_id)

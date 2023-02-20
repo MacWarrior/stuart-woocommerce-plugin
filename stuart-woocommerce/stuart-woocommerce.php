@@ -504,19 +504,13 @@ class Stuart implements MainPluginController
             return;
         }
 
-        if (!isset($packages[0]['destination']['address'])) {
+        if ( $delivery->getOption('price_type', $packages[0]) != 'fixed' && !isset($packages[0]['destination']['address'])) {
             return;
         }
 
-        $total_price = false;
         $time_list = array();
 
         foreach ($packages as $package) {
-            $price = $delivery->getJobPricing($package);
-
-            if ($price != false) {
-                $total_price = ($total_price == false ? 0.00 : (float) $total_price) + (float) $price;
-            }
 
             $tmp_time_list = $delivery->getDeliveryTimeList($package);
 

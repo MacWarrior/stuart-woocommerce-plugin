@@ -24,7 +24,6 @@ interface StuartCustomShippingMethod
     public function calculate_shipping($package = array());
     public function getOption($name, $context = false);
     public function updateOption($name, $value);
-    public function doPickupTest();
     public function isDeliveryTime($time = 'now', $context = false);
     public function createJob($order_id);
     // Get jobs info
