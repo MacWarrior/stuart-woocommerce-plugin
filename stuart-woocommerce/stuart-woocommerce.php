@@ -1,12 +1,12 @@
 <?php
 /*
     Plugin Name: Stuart Delivery Integration for WooCommerce
-    Plugin URI: http://plugins.stuart-apps.solutions/wordpress/
+    Plugin URI: https://github.com/MacWarrior/stuart-woocommerce-plugin
     Description: Integrate Stuart Delivery into your WooCommerce site
-    Author: Jose Hervas Diaz <ji.hervas@stuart.com> (extended originally from Malttt's WooCommerce Plugin)
-    Original Author: Agence Malttt - https://www.malttt.com
-    Forked on: 2020-10-10
-    Version: 1.0.1
+    Author: Oxygenz
+    Original Author: Jose Hervas Diaz - https://github.com/StuartApp/stuart-woocommerce-plugin
+    Forked on: 2023-02-09
+    Version: 1.1
     License : GPL
     Text Domain: stuart-delivery
     Domain Path: /languages/
@@ -23,7 +23,7 @@ require_once(plugin_dir_path(__FILE__) . '/interfaces/plugin-controller.php');
 
 class Stuart implements MainPluginController
 {
-    public $version = '1.0.2';
+    public $version = '1.1';
     public $settings;
     public $file = __FILE__;
     private static $instance;
@@ -48,12 +48,12 @@ class Stuart implements MainPluginController
             $charset_collate .= " COLLATE $wpdb->collate";
         }
         $result_db_table_create_query = "CREATE TABLE IF NOT EXISTS ". $wpdb->prefix . "stuart_logs" . " (
-    log_id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-    type varchar(255) NOT NULL DEFAULT '',
-    content text NOT NULL DEFAULT '',
-    date_created datetime DEFAULT NULL,
-    PRIMARY KEY (log_id)
-    ) ". $charset_collate .";";
+            log_id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            type varchar(255) NOT NULL DEFAULT '',
+            content text NOT NULL DEFAULT '',
+            date_created datetime DEFAULT NULL,
+            PRIMARY KEY (log_id)
+            ) ". $charset_collate .";";
         dbDelta($result_db_table_create_query);
         // Initialize all the plugin properties
         $delivery = $this->initializeCustomDeliveryClass();
@@ -481,7 +481,7 @@ class Stuart implements MainPluginController
             return;
         }
 
-        if ($this->review_order == true) {
+        if ($this->review_order) {
             return;
         }
         $this->review_order = true;

@@ -1,17 +1,4 @@
 <?php
-/*
-    Plugin Name: Stuart Delivery Integration for WooCommerce
-    Plugin URI: http://plugins.stuart-apps.solutions/wordpress/
-    Description: Integrate Stuart Delivery into your WooCommerce site
-    Author: Jose Hervas Diaz <ji.hervas@stuart.com>
-    Original Author: Agence Malttt - https://www.malttt.com
-    Forked on: 2020-10-10
-    Version: 1.0.1
-    License : GPL
-    Text Domain: stuart-delivery
-    Domain Path: /languages/
-*/
-
 require_once(plugin_dir_path(__FILE__) . '/interfaces/stuart-shipping-method.php');
 
 if (! class_exists('StuartShippingMethod')) {
@@ -30,7 +17,7 @@ if (! class_exists('StuartShippingMethod')) {
             $this->table_name = 'stuart_logs';
             $this->supports = array(
                 'shipping-zones',
-                'settings',
+                'settings'
             );
 
             $this->init_form_fields();
@@ -38,8 +25,8 @@ if (! class_exists('StuartShippingMethod')) {
             $this->request_processed = array();
 
             add_action('woocommerce_update_options_shipping_' . $this->id, array(
-              $this,
-              'process_admin_options'
+                $this,
+                'process_admin_options'
             ));
 
             $this->api_client_id = $this->getOption('api_id');
@@ -117,9 +104,6 @@ if (! class_exists('StuartShippingMethod')) {
         private function deleteLog($log_id)
         {
             global $wpdb;
-
-            $row = $this->get($log_id);
-            
             $wpdb->delete($wpdb->prefix.$this->table_name, ['log_id' => (int) $log_id]);
         }
         
@@ -140,269 +124,269 @@ if (! class_exists('StuartShippingMethod')) {
             $store_country = $split_country[0];
             $store_state   = $split_country[1];
             $fields = array(
-              'enabled' => array(
-                'title' => esc_html__('Enable?', 'stuart-delivery') ,
-                'type' => 'checkbox',
-                'label' => esc_html__('Enable Stuart Delivery Shipping', 'stuart-delivery'),
-                'default' => 'yes',
-                'tab' => "basic",
-                'multivendor' => true,
-                'header' => false,
-              ) ,
-              'title' => array(
-                'title' => esc_html__('Method Title', 'stuart-delivery') ,
-                'type' => 'text',
-                'description' => esc_html__('This is the title that the user sees during checkout.', 'stuart-delivery') ,
-                'default' => esc_html__('Delivery now with Stuart', 'stuart-delivery') ,
-                'tab' => "basic",
-                'header' => false,
-              ) ,
-              'api_id' => array(
-                'title' => esc_html__('Stuart client API ID', 'stuart-delivery') ,
-                'type' => 'text',
-                'description' => '' ,
-                'default' => '' ,
-                'tab' => "basic",
-                'header' => false,
-              ) ,
-              'api_secret' => array(
-                'title' => esc_html__('Stuart client API Secret', 'stuart-delivery') ,
-                'type' => 'text',
-                'description' => '' ,
-                'default' => '' ,
-                'tab' => "basic",
-                'header' => false,
-              ) ,
-              'price_type' => array(
-                'title' => esc_html__('How is the shipping fee calculated?', 'stuart-delivery') ,
-                'type' => 'select',
-                'description' => esc_html__('', 'stuart-delivery') ,
-                'default' => 'autocalculated',
-                'class' => 'price_type',
-                'tab' => 'basic',
-                'header' => 'Pricing',
-                'options' => array(
-                    'autocalculated' => esc_html__('Calculated by Stuart API', 'stuart-delivery'),
-                    'fixed' => esc_html__('Use a fixed fee', 'stuart-delivery'),
-                    'add_over_stuart' => esc_html__('Add an extra fee over Stuart price', 'stuart-delivery'),
-                    'discount_from_stuart' => esc_html__('Discount an amount from Stuart price', 'stuart-delivery'),
+                'enabled' => array(
+                    'title' => esc_html__('Enable?', 'stuart-delivery') ,
+                    'type' => 'checkbox',
+                    'label' => esc_html__('Enable Stuart Delivery Shipping', 'stuart-delivery'),
+                    'default' => 'yes',
+                    'tab' => "basic",
+                    'multivendor' => true,
+                    'header' => false
                 ),
-              ),
-              'fixed_fee' => array(
-                'title' => esc_html__('Shipping fee', 'stuart-delivery') ,
-                'type' => 'text',
-                'description' => esc_html__('', 'stuart-delivery') ,
-                'class' => 'fixed',
-                'default' => '0.00',
-                'header' => false,
-                'tab' => "basic",
-              ) ,
-              'extra_price' => array(
-                'title' => esc_html__('How much to add over Stuart prices?', 'stuart-delivery') ,
-                'type' => 'text',
-                'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery') ,
-                'class' => 'add_over_stuart',
-                'default' => '0',
-                'header' => false,
-                'tab' => "basic",
-              ) ,
-              'discount_price' => array(
-                'title' => esc_html__('How much to discount from Stuart prices?', 'stuart-delivery') ,
-                'type' => 'text',
-                'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery') ,
-                'default' => '0',
-                'class' => 'discount_from_stuart',
-                'header' => false,
-                'tab' => "basic",
-              ) ,
-              'free_shipping' => array(
-                'title' => esc_html__('Do you offer free delivery after some price (tax included) ?', 'stuart-delivery') ,
-                'type' => 'text',
-                'description' => esc_html__('0.00 to disable', 'stuart-delivery') ,
-                'default' => '0.00',
-                'header' => false,
-                'tab' => "basic",
-              ) ,
-              'address' => array(
-                'title' => esc_html__('Address of your store', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => 'Address',
-                'description' => esc_html__('Street, building', 'stuart-delivery') ,
-                'default' => esc_html__($store_address, 'stuart-delivery') ,
-                'tab' => "basic",
-              ) ,
-              'address_2' => array(
-                'title' => esc_html__('Address 2 of your store', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'description' => esc_html__('Office number or floor or flat', 'stuart-delivery') ,
-                'default' => esc_html__($store_address_2, 'stuart-delivery') ,
-                'tab' => "basic",
-              ) ,
-              'postcode' => array(
-                'title' => esc_html__('Your store ZIP/Post Code', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'default' => esc_html__($store_postcode, 'stuart-delivery') ,
-                'tab' => "basic",
-              ) ,
-              'city' => array(
-                'title' => esc_html__('Your store city name', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'default' => esc_html__($store_city, 'stuart-delivery') ,
-                'tab' => "basic",
-              ) ,
-              'country' => array(
-                'title' => esc_html__('Your store country name (in local language)', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'default' => esc_html__($store_country, 'stuart-delivery') ,
-                'tab' => "basic",
-              ) ,
-              'first_name' => array(
-                'title' => esc_html__('Pickup info: first name', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'description' => esc_html__('First name of person to pickup products (i.e. your manager)', 'stuart-delivery') ,
-                'default' => '' ,
-                'tab' => "basic",
-              ) ,
-              'last_name' => array(
-                'title' => esc_html__('Pickup info: last name', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'description' => esc_html__('Last name of person to pickup products (i.e. your manager)', 'stuart-delivery') ,
-                'default' => '' ,
-                'tab' => "basic",
-              ) ,
-              'company_name' => array(
-                'title' => esc_html__('Pickup info: company name', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'description' => esc_html__('Name of your company', 'stuart-delivery') ,
-                'default' => esc_html__($blog_title, 'stuart-delivery') ,
-                'tab' => "basic",
-              ) ,
-              'email' => array(
-                'title' => esc_html__('Pickup info: e-mail', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'description' => esc_html__('E-mail of your company/site/person', 'stuart-delivery') ,
-                'default' => esc_html__($admin_email, 'stuart-delivery') ,
-                'tab' => "basic",
-              ) ,
-              'phone' => array(
-                'title' => esc_html__('Pickup info: phone number', 'stuart-delivery') ,
-                'type' => 'text',
-                'header' => false,
-                'description' => esc_html__('Phone number of your company/site/person', 'stuart-delivery') ,
-                'default' => '' ,
-                'tab' => "basic",
-              ) ,
-              'comment' => array(
-                'title' => esc_html__('Pickup info: special instructions', 'stuart-delivery') ,
-                'type' => 'textarea',
-                'description' => esc_html__('Some special instructions for Stuart courier to pickup', 'stuart-delivery') ,
-                'default' => '' ,
-                'tab' => "basic",
-                'header' => false,
-                'css' => 'width: 400px',
-                'multivendor' => true,
-              ) ,
-              'only_postcodes' => array(
-                'title' => esc_html__('Filter delivery by postcodes', 'stuart-delivery') ,
-                'type' => 'textarea',
-                'css' => 'width: 400px',
-                'header' => false,
-                'description' => esc_html__('Prevent delivery in some unexpected zones by allowing only certain postcodes. Indicate them like this "123456,1245367,21688" (separated by comma, no space). Leave empty to disable.', 'stuart-delivery') ,
-                'default' => '' ,
-                'tab' => "basic",
-              ) ,
-          );
+                'title' => array(
+                    'title' => esc_html__('Method Title', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'description' => esc_html__('This is the title that the user sees during checkout.', 'stuart-delivery') ,
+                    'default' => esc_html__('Delivery now with Stuart', 'stuart-delivery') ,
+                    'tab' => "basic",
+                    'header' => false
+                ),
+                'api_id' => array(
+                    'title' => esc_html__('Stuart client API ID', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'description' => '' ,
+                    'default' => '' ,
+                    'tab' => "basic",
+                    'header' => false
+                ),
+                'api_secret' => array(
+                    'title' => esc_html__('Stuart client API Secret', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'description' => '' ,
+                    'default' => '' ,
+                    'tab' => "basic",
+                    'header' => false
+                ),
+                'price_type' => array(
+                    'title' => esc_html__('How is the shipping fee calculated?', 'stuart-delivery') ,
+                    'type' => 'select',
+                    'description' => esc_html__('', 'stuart-delivery') ,
+                    'default' => 'autocalculated',
+                    'class' => 'price_type',
+                    'tab' => 'basic',
+                    'header' => 'Pricing',
+                    'options' => array(
+                        'autocalculated' => esc_html__('Calculated by Stuart API', 'stuart-delivery'),
+                        'fixed' => esc_html__('Use a fixed fee', 'stuart-delivery'),
+                        'add_over_stuart' => esc_html__('Add an extra fee over Stuart price', 'stuart-delivery'),
+                        'discount_from_stuart' => esc_html__('Discount an amount from Stuart price', 'stuart-delivery')
+                    )
+                ),
+                'fixed_fee' => array(
+                    'title' => esc_html__('Shipping fee', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'description' => esc_html__('', 'stuart-delivery') ,
+                    'class' => 'fixed',
+                    'default' => '0.00',
+                    'header' => false,
+                    'tab' => "basic"
+                ),
+                'extra_price' => array(
+                    'title' => esc_html__('How much to add over Stuart prices?', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery') ,
+                    'class' => 'add_over_stuart',
+                    'default' => '0',
+                    'header' => false,
+                    'tab' => "basic"
+                ),
+                'discount_price' => array(
+                    'title' => esc_html__('How much to discount from Stuart prices?', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery') ,
+                    'default' => '0',
+                    'class' => 'discount_from_stuart',
+                    'header' => false,
+                    'tab' => "basic"
+                ),
+                'free_shipping' => array(
+                    'title' => esc_html__('Do you offer free delivery after some price (tax included) ?', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'description' => esc_html__('0.00 to disable', 'stuart-delivery') ,
+                    'default' => '0.00',
+                    'header' => false,
+                    'tab' => "basic"
+                ),
+                'address' => array(
+                    'title' => esc_html__('Address of your store', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => 'Address',
+                    'description' => esc_html__('Street, building', 'stuart-delivery') ,
+                    'default' => esc_html__($store_address, 'stuart-delivery') ,
+                    'tab' => "basic"
+                ),
+                'address_2' => array(
+                    'title' => esc_html__('Address 2 of your store', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'description' => esc_html__('Office number or floor or flat', 'stuart-delivery') ,
+                    'default' => esc_html__($store_address_2, 'stuart-delivery') ,
+                    'tab' => "basic"
+                ),
+                'postcode' => array(
+                    'title' => esc_html__('Your store ZIP/Post Code', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'default' => esc_html__($store_postcode, 'stuart-delivery') ,
+                    'tab' => "basic"
+                ),
+                'city' => array(
+                    'title' => esc_html__('Your store city name', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'default' => esc_html__($store_city, 'stuart-delivery') ,
+                    'tab' => "basic"
+                ),
+                'country' => array(
+                    'title' => esc_html__('Your store country name (in local language)', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'default' => esc_html__($store_country, 'stuart-delivery') ,
+                    'tab' => "basic"
+                ),
+                'first_name' => array(
+                    'title' => esc_html__('Pickup info: first name', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'description' => esc_html__('First name of person to pickup products (i.e. your manager)', 'stuart-delivery') ,
+                    'default' => '' ,
+                    'tab' => "basic"
+                ),
+                'last_name' => array(
+                    'title' => esc_html__('Pickup info: last name', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'description' => esc_html__('Last name of person to pickup products (i.e. your manager)', 'stuart-delivery') ,
+                    'default' => '' ,
+                    'tab' => "basic"
+                ),
+                'company_name' => array(
+                    'title' => esc_html__('Pickup info: company name', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'description' => esc_html__('Name of your company', 'stuart-delivery') ,
+                    'default' => esc_html__($blog_title, 'stuart-delivery') ,
+                    'tab' => "basic"
+                ),
+                'email' => array(
+                    'title' => esc_html__('Pickup info: e-mail', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'description' => esc_html__('E-mail of your company/site/person', 'stuart-delivery') ,
+                    'default' => esc_html__($admin_email, 'stuart-delivery') ,
+                    'tab' => "basic"
+                ),
+                'phone' => array(
+                    'title' => esc_html__('Pickup info: phone number', 'stuart-delivery') ,
+                    'type' => 'text',
+                    'header' => false,
+                    'description' => esc_html__('Phone number of your company/site/person', 'stuart-delivery') ,
+                    'default' => '' ,
+                    'tab' => "basic"
+                ),
+                'comment' => array(
+                    'title' => esc_html__('Pickup info: special instructions', 'stuart-delivery') ,
+                    'type' => 'textarea',
+                    'description' => esc_html__('Some special instructions for Stuart courier to pickup', 'stuart-delivery') ,
+                    'default' => '' ,
+                    'tab' => "basic",
+                    'header' => false,
+                    'css' => 'width: 400px',
+                    'multivendor' => true
+                ),
+                'only_postcodes' => array(
+                    'title' => esc_html__('Filter delivery by postcodes', 'stuart-delivery') ,
+                    'type' => 'textarea',
+                    'css' => 'width: 400px',
+                    'header' => false,
+                    'description' => esc_html__('Prevent delivery in some unexpected zones by allowing only certain postcodes. Indicate them like this "123456,1245367,21688" (separated by comma, no space). Leave empty to disable.', 'stuart-delivery') ,
+                    'default' => '' ,
+                    'tab' => "basic"
+                )
+            );
             $fields['delay'] = array(
-              'title' => esc_html__('What is the delay to prepare the order ?', 'stuart-delivery') ,
-              'type' => 'text',
-              'header' => false,
-              'default' => '30' ,
-              'description' => esc_html__('Prevent courier to come before you can prepare by adding minutes here.', 'stuart-delivery') ,
-              'tab' => "hours",
-              'multivendor' => true,
-          );
+                'title' => esc_html__('What is the delay to prepare the order ?', 'stuart-delivery') ,
+                'type' => 'text',
+                'header' => false,
+                'default' => '30' ,
+                'description' => esc_html__('Prevent courier to come before you can prepare by adding minutes here.', 'stuart-delivery') ,
+                'tab' => "hours",
+                'multivendor' => true
+            );
             // Weekdays info
             $days_array = array(
-              "monday" => esc_html__('Monday', 'stuart-delivery') ,
-              "tuesday" => esc_html__('Tuesday', 'stuart-delivery') ,
-              "wednesday" => esc_html__('Wednesday', 'stuart-delivery') ,
-              "thursday" => esc_html__('Thursday', 'stuart-delivery') ,
-              "friday" => esc_html__('Friday', 'stuart-delivery') ,
-              "saturday" => esc_html__('Saturday', 'stuart-delivery') ,
-              "sunday" => esc_html__('Sunday', 'stuart-delivery') ,
-          );
+                "monday" => esc_html__('Monday', 'stuart-delivery'),
+                "tuesday" => esc_html__('Tuesday', 'stuart-delivery'),
+                "wednesday" => esc_html__('Wednesday', 'stuart-delivery'),
+                "thursday" => esc_html__('Thursday', 'stuart-delivery'),
+                "friday" => esc_html__('Friday', 'stuart-delivery'),
+                "saturday" => esc_html__('Saturday', 'stuart-delivery'),
+                "sunday" => esc_html__('Sunday', 'stuart-delivery')
+            );
             foreach ($days_array as $day_name => $day_translation) {
                 $fields['working_'.$day_name] = array(
-                'title' => sprintf(esc_html__('Are you working on %s', 'stuart-delivery'), $day_translation),
-                'type' => 'select',
-                'header' => false,
-                'default' => (in_array($day_name, array('pause', 'sunday', 'saturday')) ? 'no' : 'yes') ,
-                'options' => array(
-                  "yes" => esc_html__('Yes', 'stuart-delivery'),
-                  "no" => esc_html__('No', 'stuart-delivery')
-                ),
-                'tab' => "hours",
-                'multivendor' => true,
-          );
+                    'title' => sprintf(esc_html__('Are you working on %s', 'stuart-delivery'), $day_translation),
+                    'type' => 'select',
+                    'header' => false,
+                    'default' => (in_array($day_name, array('pause', 'sunday', 'saturday')) ? 'no' : 'yes'),
+                    'options' => array(
+                        "yes" => esc_html__('Yes', 'stuart-delivery'),
+                        "no" => esc_html__('No', 'stuart-delivery')
+                    ),
+                    'tab' => "hours",
+                    'multivendor' => true
+                );
                 $fields['lowest_hour_'.$day_name] = array(
-                'title' => sprintf(esc_html__('At what time do you start on %s ?', 'stuart-delivery'), $day_translation) ,
-                'type' => 'text',
-                'header' => false,
-                'default' => '9:30',
-                'description' => esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery') ,
-                'tab' => "hours",
-                'multivendor' => true,
-          );
+                    'title' => sprintf(esc_html__('At what time do you start on %s ?', 'stuart-delivery'), $day_translation) ,
+                    'type' => 'text',
+                    'header' => false,
+                    'default' => '9:30',
+                    'description' => esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery') ,
+                    'tab' => "hours",
+                    'multivendor' => true
+                );
                 $fields['highest_hour_'.$day_name] = array(
-                'title' => sprintf(esc_html__('At what time do you stop on %s ?', 'stuart-delivery'), $day_translation) ,
-                'type' => 'text',
-                'header' => false,
-                'default' => '21:30' ,
-                'description' => esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery') ,
-                'tab' => "hours",
-                'multivendor' => true,
-          );
+                    'title' => sprintf(esc_html__('At what time do you stop on %s ?', 'stuart-delivery'), $day_translation),
+                    'type' => 'text',
+                    'header' => false,
+                    'default' => '21:30',
+                    'description' => esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery'),
+                    'tab' => "hours",
+                    'multivendor' => true
+                );
                 $fields['lowest_hour_pause_'.$day_name] = array(
-                'title' => sprintf(esc_html__('At what time do you start your pause on %s ?', 'stuart-delivery'), $day_translation) ,
-                'type' => 'text',
-                'default' => '00:00',
-                'header' => false,
-                'description' => esc_html__('Leave 00:00 to disable.', 'stuart-delivery').' '.esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery') ,
-                'tab' => "hours",
-                'multivendor' => true,
-          );
+                    'title' => sprintf(esc_html__('At what time do you start your pause on %s ?', 'stuart-delivery'), $day_translation),
+                    'type' => 'text',
+                    'default' => '00:00',
+                    'header' => false,
+                    'description' => esc_html__('Leave 00:00 to disable.', 'stuart-delivery').' '.esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery'),
+                    'tab' => "hours",
+                    'multivendor' => true
+                );
                 $fields['highest_hour_pause_'.$day_name] = array(
-                'title' => sprintf(esc_html__('At what time do you stop your pause on %s ?', 'stuart-delivery'), $day_translation),
-                'type' => 'text',
-                'default' => '00:00' ,
-                'header' => false,
-                'description' => esc_html__('Leave 00:00 to disable.', 'stuart-delivery').' '.esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery') ,
-                'tab' => "hours",
-                'multivendor' => true,
-          );
+                    'title' => sprintf(esc_html__('At what time do you stop your pause on %s ?', 'stuart-delivery'), $day_translation),
+                    'type' => 'text',
+                    'default' => '00:00',
+                    'header' => false,
+                    'description' => esc_html__('Leave 00:00 to disable.', 'stuart-delivery').' '.esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery'),
+                    'tab' => "hours",
+                    'multivendor' => true
+                );
             }
             $fields['holidays'] = array(
-              'title' =>  esc_html__('Holidays', 'stuart-delivery') ,
-              'type' => 'text',
-              'header' => false,
-              'default' => '1/01,11/11,18/05' ,
-              'description' => esc_html__('Indicate day and month and separate by coma, for example :', 'stuart-delivery') . ' 1/01,11/11,18/05',
-              'tab' => "hours",
-              'multivendor' => true,
-          );
+                'title' =>  esc_html__('Holidays', 'stuart-delivery'),
+                'type' => 'text',
+                'header' => false,
+                'default' => '1/01,11/11,18/05',
+                'description' => esc_html__('Indicate day and month and separate by coma, for example :', 'stuart-delivery') . ' 1/01,11/11,18/05',
+                'tab' => "hours",
+                'multivendor' => true
+            );
             // Product categories info
             $cat_args = array(
-              'taxonomy' => 'product_cat',
-              'hide_empty' => false,
-          );
+                'taxonomy' => 'product_cat',
+                'hide_empty' => false
+            );
             $product_categories = get_terms($cat_args);
             $categories = array(0 => esc_html__('No', 'stuart-delivery'));
             if (!empty($product_categories)) {
@@ -413,14 +397,14 @@ if (! class_exists('StuartShippingMethod')) {
                 }
             }
             $fields['excluded_categories'] = array(
-              'type' => 'select',
-              'header' => false,
-              'title' => esc_html__('Product category excluded from this delivery method', 'stuart-delivery'),
-              'description' => esc_html__('Do you want to prevent products in a category to be delivered with Stuart ? Only categories with products are displayed here.', 'stuart-delivery'),
-              'default' => '0',
-              'tab' => 'advanced',
-              'options' => $categories
-          );
+                'type' => 'select',
+                'header' => false,
+                'title' => esc_html__('Product category excluded from this delivery method', 'stuart-delivery'),
+                'description' => esc_html__('Do you want to prevent products in a category to be delivered with Stuart ? Only categories with products are displayed here.', 'stuart-delivery'),
+                'default' => '0',
+                'tab' => 'advanced',
+                'options' => $categories
+            );
             // Stuart custom settings
             $fields['create_delivery_mode'] = array(
                 'title' => esc_html__('When should the Delivery be created?', 'stuart-delivery') ,
@@ -430,76 +414,74 @@ if (! class_exists('StuartShippingMethod')) {
                     'pending' => esc_html__('When order is received (no payment initiated)', 'stuart-delivery'),
                     'procesing' => esc_html__('When order is on procesing (payment received)', 'stuart-delivery'),
                     'completed' => esc_html__('When order is completed', 'stuart-delivery'),
-                    'manual' =>  esc_html__('Create Deliveries manually', 'stuart-delivery'),
-                ) ,
-                'description' => esc_html__('', 'stuart-delivery') ,
+                    'manual' =>  esc_html__('Create Deliveries manually', 'stuart-delivery')
+                ),
+                'description' => esc_html__('', 'stuart-delivery'),
                 'default' => 'procesing',
                 'tab' => "advanced",
                 'multivendor' => true,
             );
             $fields['cancel_delivery_on_order_cancel'] = array(
-              'title' => esc_html__('Cancel Stuart Delivery on order cancelation', 'stuart-delivery') ,
+              'title' => esc_html__('Cancel Stuart Delivery on order cancelation', 'stuart-delivery'),
               'type' => 'select',
               'header' => false,
               'options' => array(
                   "yes" => esc_html__('Yes', 'stuart-delivery'),
                   "no" => esc_html__('No', 'stuart-delivery')
-                ),
-              'description' => esc_html__('', 'stuart-delivery') ,
+              ),
+              'description' => esc_html__('', 'stuart-delivery'),
               'default' => 'yes',
               'tab' => "advanced",
-          );
+            );
             $fields['cancel_delivery_on_order_refund'] = array(
-              'title' => esc_html__('Cancel Stuart Delivery on order refunded', 'stuart-delivery') ,
-              'type' => 'select',
-              'header' => false,
-              'options' => array(
-                  "yes" => esc_html__('Yes', 'stuart-delivery'),
-                  "no" => esc_html__('No', 'stuart-delivery')
+                'title' => esc_html__('Cancel Stuart Delivery on order refunded', 'stuart-delivery'),
+                'type' => 'select',
+                'header' => false,
+                'options' => array(
+                    "yes" => esc_html__('Yes', 'stuart-delivery'),
+                    "no" => esc_html__('No', 'stuart-delivery')
                 ),
-              'description' => esc_html__('Enable to cancel Stuart delivery, when order is refunded', 'stuart-delivery') ,
-              'default' => 'yes',
-              'tab' => "advanced",
-          );
+                'description' => esc_html__('Enable to cancel Stuart delivery, when order is refunded', 'stuart-delivery'),
+                'default' => 'yes',
+                'tab' => "advanced"
+            );
   
             $fields['days_limit'] = array(
-              'title' => esc_html__('Limit days to schedule order', 'stuart-delivery') ,
-              'type' => 'text',
-              'header' => false,
-              'default' => '21' ,
-              'description' => esc_html__('3 weeks by default. Cannot be shorter than 1.', 'stuart-delivery') ,
-              'tab' => "advanced",
-          );
+                'title' => esc_html__('Limit days to schedule order', 'stuart-delivery'),
+                'type' => 'text',
+                'header' => false,
+                'default' => '21',
+                'description' => esc_html__('3 weeks by default. Cannot be shorter than 1.', 'stuart-delivery'),
+                'tab' => "advanced"
+            );
             $fields['env'] = array(
-              'title' =>  esc_html__('Is this a production account ?', 'stuart-delivery') ,
-              'type' => 'select',
-              'header' => 'Environment',
-              'options' => array(
-                  "yes" => esc_html__('Yes', 'stuart-delivery'),
-                  "no" => esc_html__('No', 'stuart-delivery')
+                'title' =>  esc_html__('Is this a production account ?', 'stuart-delivery'),
+                'type' => 'select',
+                'header' => 'Environment',
+                'options' => array(
+                    "yes" => esc_html__('Yes', 'stuart-delivery'),
+                    "no" => esc_html__('No', 'stuart-delivery')
                 ),
-              'value' => 'yes' ,
-              'default' => 'yes' ,
-              'description' => esc_html__('Uncheck to use sandbox version', 'stuart-delivery') ,
-              'tab' => "advanced",
-          );
+                'value' => 'yes',
+                'default' => 'yes',
+                'description' => esc_html__('Uncheck to use sandbox version', 'stuart-delivery'),
+                'tab' => "advanced"
+            );
             $fields['debug_mode'] = array(
-              'title' =>  esc_html__('Debug logs', 'stuart-delivery') ,
-              'type' => 'select',
-              'header' => false,
-              'options' => array(
-                  "yes" => esc_html__('Yes', 'stuart-delivery'),
-                  "no" => esc_html__('No', 'stuart-delivery')
+                'title' =>  esc_html__('Debug logs', 'stuart-delivery'),
+                'type' => 'select',
+                'header' => false,
+                'options' => array(
+                    "yes" => esc_html__('Yes', 'stuart-delivery'),
+                    "no" => esc_html__('No', 'stuart-delivery')
                 ),
-              'value' => 'yes' ,
-              'default' => 'no' ,
-              'description' => esc_html__('It will create more logs and allow you to have a better insight of what is happening. Logs are encrypted and deleted after one month for security purpose.', 'stuart-delivery') ,
-              'tab' => "advanced",
-          );
+                'value' => 'yes',
+                'default' => 'no',
+                'description' => esc_html__('It will create more logs and allow you to have a better insight of what is happening. Logs are encrypted and deleted after one month for security purpose.', 'stuart-delivery'),
+                'tab' => "advanced"
+            );
   
-            $fields = apply_filters('stuart_settings_fields', $fields);
-  
-            return $fields;
+            return apply_filters('stuart_settings_fields', $fields);
         }
 
         private function get_field_header($field)
@@ -537,8 +519,6 @@ if (! class_exists('StuartShippingMethod')) {
 
         public function admin_options()
         {
-            global $wp;
-            
             $stuart_token_object = $this->setStuartAuth(true, true); ?>
          
             <h2><?php echo esc_html($this->method_title); ?></h2>
@@ -697,20 +677,36 @@ if (! class_exists('StuartShippingMethod')) {
                 $this->addLog('calculate_shipping::package', $package);
             }
 
+            if (is_a($package, 'WC_Order')) {
+                $products = $package->get_items();
+            } elseif (is_a($package, 'WC_Cart')) {
+                $products = $package->get_cart();
+            } elseif (is_array($package) && isset($package['contents'])) {
+                $products = $package['contents'];
+            }
+
+            if( !$this->getPackagesType($products) ){
+                return;
+            }
+
+            $free_shipping = (float) $this->getOption('free_shipping', $package);
+
+            $cart = $stuart->getCart();
+            $cart_total_price = (float) $cart->get_cart_contents_total() + (float) $cart->get_cart_contents_tax();
+
             $price_type = $this->getOption('price_type', $package);
             if( $price_type == 'fixed' ){
-                $price = (float) $this->getOption('fixed_fee', $package);
+                if (!empty($free_shipping) && $cart_total_price >= $free_shipping) {
+                    $price = 0.00;
+                } else {
+                    $price = (float)$this->getOption( 'fixed_fee', $package );
+                }
             } else {
                 $job_price = (float) $this->getJobPricing($package);
 
                 if (empty($job_price)) {
                     return;
                 }
-
-                $free_shipping = (float) $this->getOption('free_shipping', $package);
-
-                $cart = $stuart->getCart();
-                $cart_total_price = (float) $cart->get_cart_contents_total() + (float) $cart->get_cart_contents_tax();
 
                 if (!empty($free_shipping) && $cart_total_price >= $free_shipping) {
                     $price = 0.00;
@@ -748,8 +744,8 @@ if (! class_exists('StuartShippingMethod')) {
             $rate = array(
                 'id' => 'stuart:' . get_current_user_id(),
                 'label' => $this->getOption('title'),
-                'cost' => $price,
-              );
+                'cost' => $price
+            );
   
             $this->add_rate($rate);
         }
@@ -777,11 +773,11 @@ if (! class_exists('StuartShippingMethod')) {
             $url = '/oauth/token';
       
             $params = array(
-            "client_id" => $this->api_client_id,
-            "client_secret" => $this->api_client_ps,
-            "scope" => "api",
-            "grant_type" => "client_credentials",
-          );
+                "client_id" => $this->api_client_id,
+                "client_secret" => $this->api_client_ps,
+                "scope" => "api",
+                "grant_type" => "client_credentials"
+            );
 
             $obj = $this->makeApiRequest($url, false, $params);
 
@@ -816,26 +812,24 @@ if (! class_exists('StuartShippingMethod')) {
 
                     if ($return_object === false) {
                         return $obj->access_token;
-                    } else {
-                        return $obj;
                     }
+                    return $obj;
                 }
             }
 
             if (isset($obj) && $return_object === true) {
                 return $obj;
-            } else {
-                return false;
             }
+            return false;
         }
 
         private function makeApiRequest($url, $token = false, $params = array(), $return_array = false, $check_httpcode = false)
         {
             $request = array(
-            "url" => $url,
-            "params" => $params,
-            "token" => $token
-        );
+                "url" => $url,
+                "params" => $params,
+                "token" => $token
+            );
 
             $hash = md5(serialize($request));
 
@@ -959,19 +953,32 @@ if (! class_exists('StuartShippingMethod')) {
             return false;
         }
 
-        private function getPackagesType($products, $is_france = false)
+        private function getPackagesType($products)
         {
-            if (empty($products)) {
-                
-                // Default is bike
-                if ($is_france == true) {
-                    return "small";
-                } else {
-                    return "bike";
-                }
+            $country = strtolower($this->getOption('country'));
+            if( in_array($country, ['fr','fra','france']) ){
+                $country = 'fr';
+            } else if( in_array($country, ['pt','prt','portugal']) ){
+                $country = 'pt';
+            } else if( in_array($country, ['es','esp','españa','espana']) ){
+                $country = 'es';
+            } else if( in_array($country, ['it','ita','italia']) ){
+                $country = 'it';
+            } else if( in_array($country, ['pl','pol','polska']) ){
+                $country = 'pl';
+            } else if( in_array($country, ['gb','gbr']) || strpos($country,'united kingdom') !== false ){
+                $country = 'gb';
+            } else {
+                return false;
             }
-        
-            $total_weight = $total_depth = $total_height = $total_width = 0.00;
+
+            if (empty($products)) {
+                // Default is bike
+                if ($country == 'fr') {
+                    return 'small';
+                }
+                return 'bike';
+            }
 
             switch (get_option('woocommerce_weight_unit')) {
               
@@ -1076,35 +1083,147 @@ if (! class_exists('StuartShippingMethod')) {
                 }
             }
 
-            $packages_types = array(
-                "small" => array(
-                    "width" => 20,
-                    "height" => 40,
-                    "depth" => 15,
-                    "weight" => 3,
-                ),
-                "medium" => array(
-                    "width" => 30,
-                    "height" => 50,
-                    "depth" => 30,
-                    "weight" => 6,
-                ),
-                "large" => array(
-                    "width" => 40,
-                    "height" => 90,
-                    "depth" => 30,
-                    "weight" => 12,
-                ),
-                "xlarge" => array(
-                    "width" => 50,
-                    "height" => 120,
-                    "depth" => 50,
-                    "weight" => 20,
-                ),
-            );
+            // Cf. package sizes by country : https://stuart.com/developers/best-practices/package-sizes/
+            switch($country){
+                default:
+                case 'fr':
+                    $packages_types = array(
+                        'xxsmall' => array(
+                            'width' => 15,
+                            'height' => 25,
+                            'depth' => 2,
+                            'weight' => 1
+                        ),
+                        'xsmall' => array(
+                            'width' => 15,
+                            'height' => 20,
+                            'depth' => 20,
+                            'weight' => 6
+                        ),
+                        'small' => array(
+                            'width' => 30,
+                            'height' => 50,
+                            'depth' => 30,
+                            'weight' => 12
+                        ),
+                        'medium' => array(
+                            'width' => 40,
+                            'height' => 55,
+                            'depth' => 40,
+                            'weight' => 20
+                        ),
+                        'large' => array(
+                            'width' => 65,
+                            'height' => 90,
+                            'depth' => 50,
+                            'weight' => 30
+                        ),
+                        'xlarge' => array(
+                            'width' => 90,
+                            'height' => 100,
+                            'depth' => 50,
+                            'weight' => 50
+                        ),
+                    );
+                    break;
+
+                case 'pt':
+                case 'es':
+                case 'it':
+                    $packages_types = array(
+                        'small' => array(
+                            'width' => 40,
+                            'height' => 60,
+                            'depth' => 26,
+                            'weight' => 8
+                        ),
+                        'medium' => array(
+                            'width' => 48,
+                            'height' => 58,
+                            'depth' => 40,
+                            'weight' => 25
+                        ),
+                        'large' => array(
+                            'width' => 54,
+                            'height' => 62,
+                            'depth' => 49,
+                            'weight' => 35
+                        ),
+                        'xlarge' => array(
+                            'width' => 90,
+                            'height' => 100,
+                            'depth' => 70,
+                            'weight' => 60
+                        ),
+                    );
+                    break;
+
+                case 'pl':
+                    $packages_types = array(
+                        'small' => array(
+                            'width' => 20,
+                            'height' => 40,
+                            'depth' => 15,
+                            'weight' => 12
+                        ),
+                        'medium' => array(
+                            'width' => 30,
+                            'height' => 50,
+                            'depth' => 30,
+                            'weight' => 12
+                        ),
+                        'large' => array(
+                            'width' => 65,
+                            'height' => 90,
+                            'depth' => 50,
+                            'weight' => 25
+                        ),
+                        'xlarge' => array(
+                            'width' => 90,
+                            'height' => 100,
+                            'depth' => 50,
+                            'weight' => 70
+                        ),
+                    );
+                    break;
+
+                case 'gb':
+                    $packages_types = array(
+                        'xsmall' => array(
+                            'width' => 8,
+                            'height' => 10,
+                            'depth' => 10,
+                            'weight' => 3
+                        ),
+                        'small' => array(
+                            'width' => 20,
+                            'height' => 40,
+                            'depth' => 15,
+                            'weight' => 12
+                        ),
+                        'medium' => array(
+                            'width' => 30,
+                            'height' => 50,
+                            'depth' => 30,
+                            'weight' => 12
+                        ),
+                        'large' => array(
+                            'width' => 65,
+                            'height' => 90,
+                            'depth' => 50,
+                            'weight' => 25
+                        ),
+                        'xlarge' => array(
+                            'width' => 90,
+                            'height' => 100,
+                            'depth' => 50,
+                            'weight' => 70
+                        ),
+                    );
+                    break;
+            }
 
             $fits_in = false;
-
             foreach ($packages_types as $type => $sizes) {
                 /*
                     string $reference,
@@ -1126,24 +1245,23 @@ if (! class_exists('StuartShippingMethod')) {
                     break;
                 }
             }
-            if ($fits_in == false) {
+            if ( !$fits_in ) {
                 $log = array('products' => $products);
-                  
                 $this->addLog('getPackagesType::CartPackageOversize', $log);
             }
 
-            if ($fits_in !== false && $is_france) {
+            /*if ($fits_in && $country == 'fr') {
                 $french_types = array(
                     "small" => "bike",
                     "medium" => "motorbike",
                     "large" => "cargobike",
-                    "xlarge" => "cargobikexl",
+                    "xlarge" => "cargobikexl"
                 );
 
                 if (isset($french_types[$fits_in])) {
                     return $french_types[$fits_in];
                 }
-            }
+            }*/
 
             return $fits_in;
         }
@@ -1228,14 +1346,14 @@ if (! class_exists('StuartShippingMethod')) {
                 parse_str(wp_unslash($_REQUEST['post_data']), $datas);
 
                 $things_to_check = array(
-                "address_1",
-                "address_2",
-                "postcode",
-                "country",
-                "city",
-                "first_name",
-                "last_name",
-              );
+                    "address_1",
+                    "address_2",
+                    "postcode",
+                    "country",
+                    "city",
+                    "first_name",
+                    "last_name"
+                );
 
                 $use_billing = wc_ship_to_billing_address_only() || (isset($_REQUEST['ship_to_different_address']) && !empty($_REQUEST['ship_to_different_address']) && (string) $_REQUEST['ship_to_different_address'] == "1");
 
@@ -1359,13 +1477,10 @@ if (! class_exists('StuartShippingMethod')) {
             $params = new stdClass;
             $params->job = new stdClass;
             $params->job->pickup_at = $pickup_date->format('c');
-            $params->job->client_reference = strval($object_id);
 
-            $is_france = strpos(strtolower($pickup_obj[0]['address']), 'franc') !== false || substr($pickup_obj[0]['address'], -2) == 'FR';
+            $package_type = $this->getPackagesType($products);
 
-            $package_type = $this->getPackagesType($products, $is_france);
-
-            if ($package_type == false) {
+            if(!$package_type) {
                 return false;
             }
 
@@ -1622,13 +1737,13 @@ if (! class_exists('StuartShippingMethod')) {
             $days_limit = (int) $this->getOption('days_limit', $context) > 0 && (int) $this->getOption('days_limit', $context) < 93 ? (int) $this->getOption('days_limit', $context) : 21 ;
             $first_day = true;
             $days_numbers = array(
-              "1" => 'monday',
-              "2" => 'tuesday',
-              "3" => 'wednesday',
-              "4" => 'thursday',
-              "5" => 'friday',
-              "6" => 'saturday',
-              "7" => 'sunday'
+                "1" => 'monday',
+                "2" => 'tuesday',
+                "3" => 'wednesday',
+                "4" => 'thursday',
+                "5" => 'friday',
+                "6" => 'saturday',
+                "7" => 'sunday'
             );
 
             $delay = (int) $this->getOption('delay', $context);
@@ -1644,10 +1759,8 @@ if (! class_exists('StuartShippingMethod')) {
 
             for ($i = $day_delay; $i < $days_limit; ++$i) {
                 $day_time = 'today';
-                $day = (string) $this->dateToFormat($this->getTime($day_time.' + '.$i.' day'), 'N');
+                $day = $this->dateToFormat($this->getTime($day_time.' + '.$i.' day'), 'N');
                 $day_name = $days_numbers[$day];
-
-                $addon_minutes = 1;
 
                 $day_low_hour = $this->getOption('lowest_hour_'.$day_name, $context);
                 $day_high_hour = $this->getOption('highest_hour_'.$day_name, $context);
@@ -1656,24 +1769,13 @@ if (! class_exists('StuartShippingMethod')) {
                 $working_pause_high = $this->getOption('highest_hour_pause_'.$day_name, $context);
 
                 if (!empty($day_low_hour) && !empty($day_high_hour)) {
-                    $high_date = new DateTime('today '.$day_high_hour.' - 1 minutes + '.$i.' day ');
-                    $low_date = new DateTime('today '.$day_low_hour.' + '.$addon_minutes.' minutes + '.$i.' day ');
-
-                    $high_time = $this->getSettingTime($high_date->format('d-m-Y'), $high_date->format('H:i'));
-                    $low_time = $this->getSettingTime($low_date->format('d-m-Y'), $low_date->format('H:i'));
-
                     $result[$i] = array(
                         'day' => 'now + '.$i.' day',
                         'before' => $day_high_hour,
                         'after' => $day_low_hour,
                         'pause_start' => $working_pause_low,
                         'pause_end' => $working_pause_high
-                      );
-
-                    $first_day = false;
-
-                    if ($this->isDeliveryTime($high_time, $context) && $this->isDeliveryTime($low_time, $context)) {
-                    }
+                    );
                 }
             }
 
