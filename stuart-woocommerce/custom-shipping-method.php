@@ -1346,7 +1346,8 @@ if (! class_exists('StuartShippingMethod')) {
 
             $address_obj = array();
             $address_obj['address'] = $address_str;
-            $address_obj['package_description'] = "Order/Cart #".$object_id;
+            $address_obj['package_description'] = __('Order/Cart #', 'stuart-delivery').$object_id;
+            $address_obj['client_reference'] = strval($object_id);
             $address_obj['comment'] = $address_2;
 
             $address_obj['contact']['firstname'] = $first_name;
@@ -1358,7 +1359,7 @@ if (! class_exists('StuartShippingMethod')) {
             $params = new stdClass;
             $params->job = new stdClass;
             $params->job->pickup_at = $pickup_date->format('c');
-            $params->job->assignment_code = strval($object_id);
+            $params->job->client_reference = strval($object_id);
 
             $is_france = strpos(strtolower($pickup_obj[0]['address']), 'franc') !== false || substr($pickup_obj[0]['address'], -2) == 'FR';
 
@@ -1797,8 +1798,8 @@ if (! class_exists('StuartShippingMethod')) {
                 return false;
             }
 
-            if ((int) get_post_meta($order_id, 'stuart_job_creation', true) > 0) {
-                return;
+            if ((int) get_post_meta($order_id, 'stuart_job_creation', true) > 0 && (int) get_post_meta($order_id, 'stuart_job_id', true) != -1) {
+                return false;
             }
 
             update_post_meta($order_id, 'stuart_job_creation', 1);
@@ -1842,7 +1843,7 @@ if (! class_exists('StuartShippingMethod')) {
 
             // If pickup time is outdated, then create new pickup time asap
             if( $pickup_time < time() ){
-                $pickup_time = time() + 60;
+                $pickup_time = time() + 60*10;
             }
 
             $this->setPickupTime($pickup_time, $order_id);

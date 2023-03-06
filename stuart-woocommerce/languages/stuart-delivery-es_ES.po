@@ -199,7 +199,7 @@ msgstr "Instrucciones de recogida para el repartidor de Stuart"
 msgid "Filter delivery by postcodes"
 msgstr "Bloquear envío a códigos postales"
 
-msgid "Prevent delivery in some unexpected zones by allowing only certain postcodes. Indicate them like this "123456,1245367,21688" (separated by comma, no space). Leave empty to disable."
+msgid "Prevent delivery in some unexpected zones by allowing only certain postcodes. Indicate them like this \"123456,1245367,21688\" (separated by comma, no space). Leave empty to disable."
 msgstr "Impide que se hagan pedidos desde los códigos postales indicados. Indiquelos de la siguiente forma “123456,123457,123468” (separados por comas, sin espacios). Dejar vacío para enviar a cualquier código postal."
 
 msgid "What is the delay to prepare the order ?"
@@ -321,3 +321,6 @@ msgstr "Ha habido un problema cancelando el pedido"
 
 msgid "The delivery was canceled on Stuart"
 msgstr "El pedido ha sido cancelado en Stuart"
+
+msgid "Order/Cart #"
+msgstr "Orden/Carrito #"

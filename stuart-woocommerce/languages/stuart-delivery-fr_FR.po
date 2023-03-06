@@ -1,0 +1,525 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Stuart Delivery Integration for WooCommerce\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-01-18 16:32+0000\n"
+"PO-Revision-Date: 2023-03-06 12:01+0000\n"
+"Last-Translator: \n"
+"Language-Team: Français\n"
+"Language: fr-FR\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.6.3; wp-6.1.1\n"
+"X-Domain: stuart-delivery"
+
+#: custom-shipping-method.php:209
+msgid "0.00 to disable"
+msgstr ""
+
+#: custom-shipping-method.php:458
+msgid "3 weeks by default. Cannot be shorter than 1."
+msgstr ""
+
+#: custom-shipping-method.php:175
+msgid "Add an extra fee over Stuart price"
+msgstr ""
+
+#: custom-shipping-method.php:223
+msgid "Address 2 of your store"
+msgstr ""
+
+#: custom-shipping-method.php:215
+msgid "Address of your store"
+msgstr ""
+
+#: custom-shipping-method.php:563
+msgid "Advanced configuration"
+msgstr ""
+
+#: custom-shipping-method.php:332
+#, php-format
+msgid "Are you working on %s"
+msgstr ""
+
+#: templates/after_shipping.php:109
+msgid "around"
+msgstr "Entre"
+
+#: templates/after_shipping.php:90
+msgid "As soon as possible"
+msgstr "Au plus tôt"
+
+#: templates/after_shipping.php:91
+msgid "At a specific time"
+msgstr "Sur un créneau particulier"
+
+#: custom-shipping-method.php:344
+#, php-format
+msgid "At what time do you start on %s ?"
+msgstr ""
+
+#: custom-shipping-method.php:362
+#, php-format
+msgid "At what time do you start your pause on %s ?"
+msgstr ""
+
+#: custom-shipping-method.php:353
+#, php-format
+msgid "At what time do you stop on %s ?"
+msgstr ""
+
+#: custom-shipping-method.php:371
+#, php-format
+msgid "At what time do you stop your pause on %s ?"
+msgstr ""
+
+#: custom-shipping-method.php:561
+msgid "Basic settings"
+msgstr ""
+
+#: custom-shipping-method.php:173
+msgid "Calculated by Stuart API"
+msgstr ""
+
+#: custom-shipping-method.php:429
+msgid "Cancel Stuart Delivery on order cancelation"
+msgstr ""
+
+#: custom-shipping-method.php:441
+msgid "Cancel Stuart Delivery on order refunded"
+msgstr ""
+
+#: stuart-woocommerce.php:410
+msgid "Cancel this delivery"
+msgstr "Annuler cette livraison"
+
+#: stuart-woocommerce.php:426
+msgid "Click here to follow delivery."
+msgstr "Cliquez ici pour suivre la livraison."
+
+#: custom-shipping-method.php:421
+msgid "Create Deliveries manually"
+msgstr ""
+
+#: stuart-woocommerce.php:406
+msgid "Create delivery"
+msgstr "Créer la livraison"
+
+#: custom-shipping-method.php:475
+msgid "Debug logs"
+msgstr ""
+
+#: stuart-woocommerce.php:263
+msgid "Delivery accepted by Stuart and will be assigned to a driver."
+msgstr ""
+
+#: stuart-woocommerce.php:270
+msgid "Delivery cancelled, you won't be charged."
+msgstr ""
+
+#: stuart-woocommerce.php:264
+msgid "Delivery has been scheduled. It will start later."
+msgstr "La livraison a été planifiée."
+
+#: stuart-woocommerce.php:271
+msgid ""
+"Delivery has expired. No driver accepted the job. It didn't cost any money."
+msgstr ""
+
+#: custom-shipping-method.php:144
+msgid "Delivery now with Stuart"
+msgstr ""
+
+#: custom-shipping-method.php:16
+msgid "Delivery on schedule."
+msgstr ""
+
+#: stuart-woocommerce.php:368
+msgid "Delivery state :"
+msgstr "Etat de la livraison :"
+
+#: custom-shipping-method.php:176
+msgid "Discount an amount from Stuart price"
+msgstr ""
+
+#: custom-shipping-method.php:207
+msgid "Do you offer free delivery after some price (tax included) ?"
+msgstr ""
+
+#: custom-shipping-method.php:407
+msgid ""
+"Do you want to prevent products in a category to be delivered with Stuart ? "
+"Only categories with products are displayed here."
+msgstr ""
+
+#: stuart-woocommerce.php:661
+msgid "Docs & Support"
+msgstr ""
+
+#: stuart-woocommerce.php:267
+msgid "Driver has accepted the job and started the delivery."
+msgstr "Un chauffeur a accepté et a démarré la livraison."
+
+#: custom-shipping-method.php:279
+msgid "E-mail of your company/site/person"
+msgstr ""
+
+#: custom-shipping-method.php:134
+msgid "Enable Stuart Delivery Shipping"
+msgstr ""
+
+#: custom-shipping-method.php:448
+msgid "Enable to cancel Stuart delivery, when order is refunded"
+msgstr ""
+
+#: custom-shipping-method.php:132
+msgid "Enable?"
+msgstr ""
+
+#: custom-shipping-method.php:302
+msgid "Filter delivery by postcodes"
+msgstr ""
+
+#: custom-shipping-method.php:255
+msgid "First name of person to pickup products (i.e. your manager)"
+msgstr ""
+
+#: stuart-woocommerce.php:725
+msgid "Follow your order"
+msgstr "Suivre votre commande"
+
+#: custom-shipping-method.php:348 custom-shipping-method.php:357 
+#: custom-shipping-method.php:366 custom-shipping-method.php:375
+msgid "Format this in 24H format 23:23 for 11PM 23 minutes"
+msgstr ""
+
+#: custom-shipping-method.php:326
+msgid "Friday"
+msgstr "Vendredi"
+
+#: custom-shipping-method.php:381
+msgid "Holidays"
+msgstr ""
+
+#: custom-shipping-method.php:562
+msgid "Hours & days"
+msgstr ""
+
+#: custom-shipping-method.php:165
+msgid "How is the shipping fee calculated?"
+msgstr ""
+
+#: custom-shipping-method.php:189
+msgid "How much to add over Stuart prices?"
+msgstr ""
+
+#: custom-shipping-method.php:198
+msgid "How much to discount from Stuart prices?"
+msgstr ""
+
+#. URI of the plugin
+msgid "http://plugins.stuart-apps.solutions/wordpress/"
+msgstr ""
+
+#: custom-shipping-method.php:385
+msgid "Indicate day and month and separate by coma, for example :"
+msgstr ""
+
+#. Description of the plugin
+msgid "Integrate Stuart Delivery into your WooCommerce site"
+msgstr ""
+
+#: custom-shipping-method.php:462
+msgid "Is this a production account ?"
+msgstr ""
+
+#: custom-shipping-method.php:484
+msgid ""
+"It will create more logs and allow you to have a better insight of what is "
+"happening. Logs are encrypted and deleted after one month for security "
+"purpose."
+msgstr ""
+
+#. Author of the plugin
+msgid "Jose Hervas Diaz <ji.hervas@stuart.com>"
+msgstr ""
+
+#: custom-shipping-method.php:263
+msgid "Last name of person to pickup products (i.e. your manager)"
+msgstr ""
+
+#: custom-shipping-method.php:366 custom-shipping-method.php:375
+msgid "Leave 00:00 to disable."
+msgstr ""
+
+#: custom-shipping-method.php:454
+msgid "Limit days to schedule order"
+msgstr ""
+
+#: stuart-woocommerce.php:726
+msgid "Link"
+msgstr "Lien"
+
+#: custom-shipping-method.php:564
+msgid "Logs"
+msgstr ""
+
+#: custom-shipping-method.php:141
+msgid "Method Title"
+msgstr ""
+
+#: custom-shipping-method.php:322
+msgid "Monday"
+msgstr "Lundi"
+
+#: custom-shipping-method.php:271
+msgid "Name of your company"
+msgstr ""
+
+#: custom-shipping-method.php:338 custom-shipping-method.php:395 
+#: custom-shipping-method.php:434 custom-shipping-method.php:446 
+#: custom-shipping-method.php:467 custom-shipping-method.php:480
+msgid "No"
+msgstr ""
+
+#: stuart-woocommerce.php:374
+msgid "No pickup time set."
+msgstr ""
+
+#: custom-shipping-method.php:226
+msgid "Office number or floor or flat"
+msgstr ""
+
+#: custom-shipping-method.php:1356
+msgid "Order/Cart #"
+msgstr "Commande #"
+
+#: custom-shipping-method.php:287
+msgid "Phone number of your company/site/person"
+msgstr ""
+
+#: stuart-woocommerce.php:373
+msgid "Pickup date :"
+msgstr "Date de retrait :"
+
+#: custom-shipping-method.php:268
+msgid "Pickup info: company name"
+msgstr ""
+
+#: custom-shipping-method.php:276
+msgid "Pickup info: e-mail"
+msgstr ""
+
+#: custom-shipping-method.php:252
+msgid "Pickup info: first name"
+msgstr ""
+
+#: custom-shipping-method.php:260
+msgid "Pickup info: last name"
+msgstr ""
+
+#: custom-shipping-method.php:284
+msgid "Pickup info: phone number"
+msgstr ""
+
+#: custom-shipping-method.php:292
+msgid "Pickup info: special instructions"
+msgstr ""
+
+#: custom-shipping-method.php:316
+msgid "Prevent courier to come before you can prepare by adding minutes here."
+msgstr ""
+
+#: custom-shipping-method.php:306
+msgid ""
+"Prevent delivery in some unexpected zones by allowing only certain postcodes."
+" Indicate them like this \"123456,1245367,21688\" (separated by comma, no "
+"space). Leave empty to disable."
+msgstr ""
+
+#: custom-shipping-method.php:406
+msgid "Product category excluded from this delivery method"
+msgstr ""
+
+#: custom-shipping-method.php:327
+msgid "Saturday"
+msgstr "Samedi"
+
+#: templates/after_shipping.php:83
+msgid "Select time range to start your delivery"
+msgstr "Sélectionnez la plage horaire de votre livraison"
+
+#: stuart-woocommerce.php:660
+msgid "Settings"
+msgstr "Paramètres"
+
+#: custom-shipping-method.php:180
+msgid "Shipping fee"
+msgstr ""
+
+#: custom-shipping-method.php:294
+msgid "Some special instructions for Stuart courier to pickup"
+msgstr ""
+
+#: custom-shipping-method.php:218
+msgid "Street, building"
+msgstr ""
+
+#: custom-shipping-method.php:149
+msgid "Stuart client API ID"
+msgstr ""
+
+#: custom-shipping-method.php:157
+msgid "Stuart client API Secret"
+msgstr ""
+
+#: custom-shipping-method.php:15
+msgid "Stuart Delivery"
+msgstr ""
+
+#. Name of the plugin
+msgid "Stuart Delivery Integration for WooCommerce"
+msgstr ""
+
+#: stuart-woocommerce.php:89
+#, php-format
+msgid ""
+"Stuart Delivery Plugin requires PHP 5.3 or higher and your current PHP "
+"version is %s. Please (contact your host to) update your PHP version."
+msgstr ""
+
+#: stuart-woocommerce.php:266
+msgid "Stuart found a driver and delivery will begin on time."
+msgstr ""
+
+#: stuart-woocommerce.php:265
+msgid "Stuart is looking for a driver. It should start soon."
+msgstr ""
+"Stuart recherche un livreur ; la livraidon devrait démarrer prochainement."
+
+#: custom-shipping-method.php:328
+msgid "Sunday"
+msgstr "Dimanche"
+
+#: custom-shipping-method.php:1921
+msgid "The delivery was canceled on Stuart"
+msgstr "La livraison Stuart a été annulée"
+
+#: custom-shipping-method.php:1875
+msgid "The delivery was created on Stuart"
+msgstr "La livraison Stuart a été créée"
+
+#: stuart-woocommerce.php:268
+msgid "The package was delivered successfully."
+msgstr "Livraison effectuée avec succès."
+
+#: stuart-woocommerce.php:269
+msgid "The package won't be delivered as it was cancelled."
+msgstr "La livraison a été annulée."
+
+#: custom-shipping-method.php:1916
+msgid "There was a problem canceling the delivery"
+msgstr ""
+
+#: custom-shipping-method.php:1880
+msgid "There was a problem creating the delivery on Stuart"
+msgstr "Un problème est survenu lors de la création de la livraison Stuart"
+
+#: stuart-woocommerce.php:262
+msgid "This delivery hasn't been sent to Stuart yet."
+msgstr "La livraison n'a pas été envoyé à Stuart pour l'instant."
+
+#: custom-shipping-method.php:143
+msgid "This is the title that the user sees during checkout."
+msgstr ""
+
+#: custom-shipping-method.php:325
+msgid "Thursday"
+msgstr "Jeudi"
+
+#: custom-shipping-method.php:323
+msgid "Tuesday"
+msgstr ""
+
+#: custom-shipping-method.php:471
+msgid "Uncheck to use sandbox version"
+msgstr ""
+
+#: custom-shipping-method.php:191 custom-shipping-method.php:200
+#, php-format
+msgid ""
+"Units are relative to Stuart API prices. For example: 10 is 10% over Stuart "
+"price"
+msgstr ""
+
+#: custom-shipping-method.php:174
+msgid "Use a fixed fee"
+msgstr ""
+
+#: custom-shipping-method.php:324
+msgid "Wednesday"
+msgstr "Mercredi"
+
+#: custom-shipping-method.php:312
+msgid "What is the delay to prepare the order ?"
+msgstr ""
+
+#: custom-shipping-method.php:420
+msgid "When order is completed"
+msgstr ""
+
+#: custom-shipping-method.php:419
+msgid "When order is on procesing (payment received)"
+msgstr ""
+
+#: custom-shipping-method.php:418
+msgid "When order is received (no payment initiated)"
+msgstr ""
+
+#: custom-shipping-method.php:414
+msgid "When should the Delivery be created?"
+msgstr ""
+
+#: custom-shipping-method.php:337 custom-shipping-method.php:433 
+#: custom-shipping-method.php:445 custom-shipping-method.php:466 
+#: custom-shipping-method.php:479
+msgid "Yes"
+msgstr ""
+
+#: stuart-woocommerce.php:634
+msgid ""
+"Your delivery hasn't been sent to Stuart yet, your payment might be pending "
+"approval, this page will keep updating until it begin."
+msgstr ""
+"Votre commande est en cours de préparation et n'a pas encore été confiée à "
+"Stuart. Cette page d'actualisera pour vous permettre de suivre l'avancement "
+"votre livraison."
+
+#: stuart-woocommerce.php:726
+msgid "Your package will depart from the store around"
+msgstr "Votre colis sera expédié de la boutique le"
+
+#: custom-shipping-method.php:238
+msgid "Your store city name"
+msgstr ""
+
+#: custom-shipping-method.php:245
+msgid "Your store country name (in local language)"
+msgstr ""
+
+#: custom-shipping-method.php:231
+msgid "Your store ZIP/Post Code"
+msgstr ""
+
+#: custom-shipping-method.php:1950
+msgid ""
+"Your website cannot connect to the Stuart API. Please verify informations "
+"provided."
+msgstr ""
+
+#: custom-shipping-method.php:1933
+msgid "Your website is connected to the Stuart API and running."
+msgstr ""

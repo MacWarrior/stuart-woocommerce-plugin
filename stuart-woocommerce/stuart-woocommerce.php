@@ -393,7 +393,7 @@ class Stuart implements MainPluginController
                 <?php endif; ?>
 
             </div>
-            <?php if (in_array($current_state_title, array('not_schedule')) && $delivery->getOption('create_delivery_mode', $order) == "manual") : ?>
+            <?php if (in_array($current_state_title, array('not_schedule','canceled')) && $delivery->getOption('create_delivery_mode', $order) == "manual") : ?>
                 <?php
                     woocommerce_wp_checkbox(
             array(
@@ -407,7 +407,7 @@ class Stuart implements MainPluginController
         ); ?>
                 <button type="button" onclick="createDelivery()" class="stuart-button-normal"><?php esc_html_e('Create delivery', 'stuart-delivery'); ?></button>
             <?php endif; ?>
-            <?php if (in_array($current_state_title, array('new', 'scheduled', 'searching'))) : ?>
+            <?php if (in_array($current_state_title, array('new','scheduled','searching','expired'))) : ?>
                 <div class="stuart_edit_job_action">
                 <button type="button" onclick="cancelDelivery()" class="stuart-button-danger"><?php esc_html_e('Cancel this delivery', 'stuart-delivery'); ?></button>
                 <?php
