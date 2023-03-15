@@ -23,7 +23,7 @@ require_once(plugin_dir_path(__FILE__) . '/interfaces/plugin-controller.php');
 
 class Stuart implements MainPluginController
 {
-    public $version = '1.1';
+    public $version = '1.2';
     public $settings;
     public $file = __FILE__;
     private static $instance;
@@ -75,14 +75,15 @@ class Stuart implements MainPluginController
         require_once(ABSPATH . '/wp-admin/includes/plugin.php');
         if (! is_plugin_active('woocommerce/woocommerce.php') && ! function_exists('WC')) {
             return;
-        } else {
-            if (version_compare(PHP_VERSION, '5.3', 'lt')) {
-                return add_action('admin_notices', array( $this, 'phpVersionNotice' ));
-            }
-            $this->hooks();
-            load_plugin_textdomain('stuart-delivery', false, basename(dirname(__FILE__)) . '/languages');
-            $this->addCustomEndpointsToThisSite();
         }
+
+        if (version_compare(PHP_VERSION, '5.3', 'lt')) {
+            return add_action('admin_notices', array( $this, 'phpVersionNotice' ));
+        }
+
+        $this->hooks();
+        load_plugin_textdomain('stuart-delivery', false, basename(dirname(__FILE__)) . '/languages');
+        $this->addCustomEndpointsToThisSite();
     }
 
     public function phpVersionNotice()
@@ -230,7 +231,7 @@ class Stuart implements MainPluginController
     {
         $post_type = get_post_type($order_id);
         
-        if ("shop_order" != $post_type) {
+        if ('shop_order' != $post_type) {
             return;
         }
 
@@ -261,16 +262,16 @@ class Stuart implements MainPluginController
         $job = $delivery->getJob($job_id);
 
         $delivery_status = array(
-            "not_schedule"=> esc_html__('This delivery hasn\'t been sent to Stuart yet.', 'stuart-delivery'),
-            "new"         => esc_html__('Delivery accepted by Stuart and will be assigned to a driver.', 'stuart-delivery'),
-            "scheduled"   => esc_html__('Delivery has been scheduled. It will start later.', 'stuart-delivery'),
-            "searching"   => esc_html__('Stuart is looking for a driver. It should start soon.', 'stuart-delivery'),
-            "accepted"    => esc_html__('Stuart found a driver and delivery will begin on time.', 'stuart-delivery'),
-            "in_progress" => esc_html__('Driver has accepted the job and started the delivery.', 'stuart-delivery'),
-            "finished"    => esc_html__('The package was delivered successfully.', 'stuart-delivery'),
-            "canceled"    => esc_html__('The package won\'t be delivered as it was cancelled.', 'stuart-delivery'),
-            "voided"      => esc_html__('Delivery cancelled, you won\'t be charged.', 'stuart-delivery'),
-            "expired"     => esc_html__('Delivery has expired. No driver accepted the job. It didn\'t cost any money.', 'stuart-delivery')
+            'not_schedule'=> esc_html__('This delivery hasn\'t been sent to Stuart yet.', 'stuart-delivery'),
+            'new'         => esc_html__('Delivery accepted by Stuart and will be assigned to a driver.', 'stuart-delivery'),
+            'scheduled'   => esc_html__('Delivery has been scheduled. It will start later.', 'stuart-delivery'),
+            'searching'   => esc_html__('Stuart is looking for a driver. It should start soon.', 'stuart-delivery'),
+            'accepted'    => esc_html__('Stuart found a driver and delivery will begin on time.', 'stuart-delivery'),
+            'in_progress' => esc_html__('Driver has accepted the job and started the delivery.', 'stuart-delivery'),
+            'finished'    => esc_html__('The package was delivered successfully.', 'stuart-delivery'),
+            'canceled'    => esc_html__('The package won\'t be delivered as it was cancelled.', 'stuart-delivery'),
+            'voided'      => esc_html__('Delivery cancelled, you won\'t be charged.', 'stuart-delivery'),
+            'expired'     => esc_html__('Delivery has expired. No driver accepted the job. It didn\'t cost any money.', 'stuart-delivery')
         );
 
         if ((int) $job_id == -1) {
@@ -288,7 +289,6 @@ class Stuart implements MainPluginController
 
         ob_start(); ?>
         <style>
-            
             .stuart-backoffice-wrapper {
                 display: block;
                 padding: 10px 15px;
@@ -346,7 +346,6 @@ class Stuart implements MainPluginController
                 background-color: #c9302c;
                 border-color: #ac2925;
             }
-
         </style>
         <script>
             function cancelDelivery(){
@@ -370,8 +369,8 @@ class Stuart implements MainPluginController
                 <h3><?php esc_html_e('Delivery state :', 'stuart-delivery');
         echo ' '.esc_html(ucfirst(str_replace('_', ' ', $current_state_title))); ?></h3>
                 <p<?php if (empty($pickup_time)) {
-            echo ' class="none_set"';
-        } ?>>
+                    echo ' class="none_set"';
+                } ?>>
                     <b><?php esc_html_e('Pickup date :', 'stuart-delivery'); ?></b>
                     <?php echo (!empty($pickup_time)) ? esc_html($delivery->formatToDate('d/m/Y H:i', is_numeric($pickup_time) ? $pickup_time : $delivery->getTime($pickup_time))) : esc_html__('No pickup time set.', 'stuart-delivery'); ?>
                 </p>
@@ -383,10 +382,10 @@ class Stuart implements MainPluginController
                     <div class="woocommerce-alert woocommerce-error">
                         <ul>
                             <?php foreach ($errors as $error_key => $error_value) {
-            if (!is_array($error_value)) {
-                echo '<li><b>'.$error_key. '</b> : '.$error_value.'</li>';
-            }
-        } ?>
+                                if (!is_array($error_value)) {
+                                    echo '<li><b>'.$error_key. '</b> : '.$error_value.'</li>';
+                                }
+                            } ?>
                         </ul>
                     </div>
 
@@ -396,15 +395,15 @@ class Stuart implements MainPluginController
             <?php if (in_array($current_state_title, array('not_schedule','canceled')) && $delivery->getOption('create_delivery_mode', $order) == "manual") : ?>
                 <?php
                     woocommerce_wp_checkbox(
-            array(
+                        array(
                             'id'            => 'create_job',
                             'wrapper_class' => 'misha-set-tip-style',
                             'label'         => '',
                             'description'   => '',
                             'class'         => 'hidden-input-create',
-                            'style'         => 'display:none',
-                            )
-        ); ?>
+                            'style'         => 'display:none'
+                        )
+                    ); ?>
                 <button type="button" onclick="createDelivery()" class="stuart-button-normal"><?php esc_html_e('Create delivery', 'stuart-delivery'); ?></button>
             <?php endif; ?>
             <?php if (in_array($current_state_title, array('new','scheduled','searching','expired'))) : ?>
@@ -412,15 +411,16 @@ class Stuart implements MainPluginController
                 <button type="button" onclick="cancelDelivery()" class="stuart-button-danger"><?php esc_html_e('Cancel this delivery', 'stuart-delivery'); ?></button>
                 <?php
                     woocommerce_wp_checkbox(
-            array(
+                        array(
                             'id'            => 'cancel_job',
                             'wrapper_class' => 'misha-set-tip-style',
                             'label'         => '',
                             'description'   => '',
                             'class'         => 'hidden-input-delete',
-                            'style'         => 'display:none',
-                            )
-        ); ?></div>
+                            'style'         => 'display:none'
+                        )
+                    ); ?>
+                </div>
             <?php
                 else :
                     if (isset($job->deliveries[0]->tracking_url) && !in_array($current_state_title, array('canceled'))) :
@@ -606,9 +606,8 @@ class Stuart implements MainPluginController
         $cart = $this->getCart();
         if ($cart) {
             return $cart->get_customer();
-        } else {
-            return new WC_Customer(get_current_user_id());
         }
+        return new WC_Customer(get_current_user_id());
     }
 
     public function followPickup($data, $render = true)
@@ -648,9 +647,9 @@ class Stuart implements MainPluginController
             echo $html;
             echo "</body></html>";
             die;
-        } else {
-            return $html;
         }
+
+        return $html;
     }
 
     public function getPluginActions($actions)
