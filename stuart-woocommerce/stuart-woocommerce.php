@@ -6,7 +6,7 @@
     Author: Oxygenz
     Original Author: Jose Hervas Diaz - https://github.com/StuartApp/stuart-woocommerce-plugin
     Forked on: 2023-02-09
-    Version: 1.1
+    Version: 1.2
     License : GPL
     Text Domain: stuart-delivery
     Domain Path: /languages/
@@ -364,7 +364,7 @@ class Stuart implements MainPluginController
                 <div class="stuart-logo-wrapper">
                     <img src="<?php echo plugin_dir_url(__FILE__).'img/logo_stuart.png'; ?>" alt="Stuart Logo">
                     <?php if (!in_array($current_state_title, array('not_schedule'))) : ?>
-                        <a target="_blank" rel="noopener noreferrer" href="<?php echo esc_url(($delivery->getOption('env') == 'yes' ? 'https://dashboard.sandbox.stuart.com/jobs/' : 'https://dashboard.sandbox.stuart.com/jobs/') . $job_id) ?>">Stuart Dashboard</a>
+                        <a target="_blank" rel="noopener noreferrer" href="<?php echo esc_url(($delivery->getOption('env') == 'yes' ? 'https://dashboard.stuart.com/jobs/' : 'https://dashboard.sandbox.stuart.com/jobs/') . $job_id) ?>">Stuart Dashboard</a>
                     <?php endif; ?>
                 </div>
                 <h3><?php esc_html_e('Delivery state :', 'stuart-delivery');

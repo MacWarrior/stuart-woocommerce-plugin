@@ -1962,6 +1962,7 @@ if (! class_exists('StuartShippingMethod')) {
                 $order->add_order_note($note);
                 return true;
             }
+
             $order = wc_get_order($order_id);
             $note = esc_html__('There was a problem creating the delivery on Stuart', 'stuart-delivery');
             $order->add_order_note($note);
@@ -1994,18 +1995,26 @@ if (! class_exists('StuartShippingMethod')) {
 
             $return = $this->makeApiRequest($url, $token, "{}", false, true);
 
-            if ($return !== "") {
-                $order = wc_get_order($order_id);
-                $note = esc_html__('There was a problem canceling the delivery', 'stuart-delivery');
-                $order->add_order_note($note);
-                return false;
-            } else {
-                $order = wc_get_order($order_id);
-                $note = esc_html__('The delivery was canceled on Stuart', 'stuart-delivery');
+            $order = wc_get_order($order_id);
+
+            $job = $this->getJob($job_id);
+            if( $job->status == 'expired' ){
+                $note = esc_html__('The delivery was expired on Stuart', 'stuart-delivery');
                 $order->add_order_note($note);
                 update_post_meta($order_id, 'stuart_job_id', '-1');
                 return true;
             }
+
+            if ($return !== '') {
+                $note = esc_html__('There was a problem canceling the delivery', 'stuart-delivery');
+                $order->add_order_note($note);
+                return false;
+            }
+
+            $note = esc_html__('The delivery was canceled on Stuart', 'stuart-delivery');
+            $order->add_order_note($note);
+            update_post_meta($order_id, 'stuart_job_id', '-1');
+            return true;
         }
 
         public function connectedNotice()
