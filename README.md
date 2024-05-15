@@ -2,8 +2,6 @@
 
 <img src="assets/header.png">
 
-IMPORTANT: This plugin is no longer maintained. Stuart is not looking to onboard new users to the Woocommerce plugin.
-
 ### Changelog
 
 Visit [Changelog](CHANGELOG.md)
