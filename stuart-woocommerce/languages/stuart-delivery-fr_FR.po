@@ -6,7 +6,7 @@ msgstr ""
 "PO-Revision-Date: 2023-03-15 09:04+0000\n"
 "Last-Translator: \n"
 "Language-Team: Français\n"
-"Language: fr-FR\n"
+"Language: fr_FR\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -193,7 +193,7 @@ msgstr ""
 msgid "Follow your order"
 msgstr "Suivre votre commande"
 
-#: custom-shipping-method.php:344 custom-shipping-method.php:353 
+#: custom-shipping-method.php:344 custom-shipping-method.php:353
 #: custom-shipping-method.php:362 custom-shipping-method.php:371
 msgid "Format this in 24H format 23:23 for 11PM 23 minutes"
 msgstr ""
@@ -277,8 +277,8 @@ msgstr "Lundi"
 msgid "Name of your company"
 msgstr ""
 
-#: custom-shipping-method.php:334 custom-shipping-method.php:391 
-#: custom-shipping-method.php:430 custom-shipping-method.php:442 
+#: custom-shipping-method.php:334 custom-shipping-method.php:391
+#: custom-shipping-method.php:430 custom-shipping-method.php:442
 #: custom-shipping-method.php:463 custom-shipping-method.php:476
 msgid "No"
 msgstr ""
@@ -489,8 +489,8 @@ msgstr ""
 msgid "When should the Delivery be created?"
 msgstr ""
 
-#: custom-shipping-method.php:333 custom-shipping-method.php:429 
-#: custom-shipping-method.php:441 custom-shipping-method.php:462 
+#: custom-shipping-method.php:333 custom-shipping-method.php:429
+#: custom-shipping-method.php:441 custom-shipping-method.php:462
 #: custom-shipping-method.php:475
 msgid "Yes"
 msgstr ""

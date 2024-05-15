@@ -4,6 +4,19 @@ require_once(plugin_dir_path(__FILE__) . '/interfaces/stuart-shipping-method.php
 if (! class_exists('StuartShippingMethod')) {
     class StuartShippingMethod extends WC_Shipping_Method implements StuartCustomShippingMethod
     {
+        public $id;
+        public $instance_id;
+        public $title;
+        public $method_title;
+        public $method_description;
+        public $enabled;
+        private string $table_name;
+        public $supports;
+        private array $request_processed;
+        private string $api_client_id;
+        private string $api_client_ps;
+        private $time_list_cache;
+
         public function __construct($instance_id = 0)
         {
             load_plugin_textdomain('stuart-delivery', false, basename(dirname(__FILE__)) . '/languages');
@@ -29,15 +42,23 @@ if (! class_exists('StuartShippingMethod')) {
                 'process_admin_options'
             ));
 
-            $this->api_client_id = $this->getOption('api_id');
-            $this->api_client_ps = $this->getOption('api_secret');
+            if( $this->getOption('env') == 'yes' ){
+                $api_id = 'api_id';
+                $api_secret = 'api_secret';
+            } else {
+                $api_id = 'api_id_sandbox';
+                $api_secret = 'api_secret_sandbox';
+            }
+
+            $this->api_client_id = $this->getOption($api_id);
+            $this->api_client_ps = $this->getOption($api_secret);
             $this->time_list_cache = null;
         }
 
         public function purgeLogs()
         {
             global $wpdb;
-            $wpdb->query("DELETE FROM ". $wpdb->prefix . $this->table_name . " WHERE date_created < DATE_SUB(NOW(),INTERVAL 1 MONTH)");
+            $wpdb->query('DELETE FROM '. $wpdb->prefix . $this->table_name . ' WHERE date_created < DATE_SUB(NOW(),INTERVAL 1 MONTH)');
         }
  
         private function encrypt($string, $action = 'e')
@@ -46,8 +67,16 @@ if (! class_exists('StuartShippingMethod')) {
                 return $string;
             }
 
-            $secret_key = $this->getOption('api_id');
-            $secret_iv = $this->getOption('api_secret');
+            if( $this->getOption('env') == 'yes' ){
+                $api_id = 'api_id';
+                $api_secret = 'api_secret';
+            } else {
+                $api_id = 'api_id_sandbox';
+                $api_secret = 'api_secret_sandbox';
+            }
+
+            $secret_key = $this->getOption($api_id);
+            $secret_iv = $this->getOption($api_secret);
          
             $output = false;
             $encrypt_method = "AES-256-CBC";
@@ -68,7 +97,7 @@ if (! class_exists('StuartShippingMethod')) {
             return $this->encrypt($datas, 'd');
         }
 
-        public function addLog($type = '', $content)
+        public function addLog($type, $content)
         {
             global $wpdb;
 
@@ -87,7 +116,7 @@ if (! class_exists('StuartShippingMethod')) {
         {
             global $wpdb;
 
-            $res = $wpdb->prepare("SELECT * FROM ". $wpdb->prefix . $this->table_name . " WHERE log_id = %d", $log_id);
+            $res = $wpdb->prepare('SELECT * FROM '. $wpdb->prefix . $this->table_name . ' WHERE log_id = %d', $log_id);
 
             return $wpdb->get_row($res, ARRAY_A);
         }
@@ -96,7 +125,7 @@ if (! class_exists('StuartShippingMethod')) {
         {
             global $wpdb;
 
-            $res = $wpdb->prepare("SELECT * FROM ". $wpdb->prefix . $this->table_name . " WHERE log_id > 0 ORDER BY log_id DESC LIMIT %d, %d", $offset, $limit);
+            $res = $wpdb->prepare('SELECT * FROM '. $wpdb->prefix . $this->table_name . ' WHERE log_id > 0 ORDER BY log_id DESC LIMIT %d, %d', $offset, $limit);
 
             return $wpdb->get_results($res, ARRAY_A);
         }
@@ -122,45 +151,61 @@ if (! class_exists('StuartShippingMethod')) {
             $split_country = explode(":", $store_raw_country);
             // Country and state separated:
             $store_country = $split_country[0];
-            $store_state   = $split_country[1];
+            //$store_state   = $split_country[1];
             $fields = array(
                 'enabled' => array(
-                    'title' => esc_html__('Enable?', 'stuart-delivery') ,
+                    'title' => esc_html__('Enable?', 'stuart-delivery'),
                     'type' => 'checkbox',
                     'label' => esc_html__('Enable Stuart Delivery Shipping', 'stuart-delivery'),
                     'default' => 'yes',
-                    'tab' => "basic",
+                    'tab' => 'basic',
                     'multivendor' => true,
                     'header' => false
                 ),
                 'title' => array(
-                    'title' => esc_html__('Method Title', 'stuart-delivery') ,
+                    'title' => esc_html__('Method Title', 'stuart-delivery'),
                     'type' => 'text',
-                    'description' => esc_html__('This is the title that the user sees during checkout.', 'stuart-delivery') ,
+                    'description' => esc_html__('This is the title that the user sees during checkout.', 'stuart-delivery'),
                     'default' => esc_html__('Delivery now with Stuart', 'stuart-delivery') ,
-                    'tab' => "basic",
+                    'tab' => 'basic',
                     'header' => false
                 ),
                 'api_id' => array(
-                    'title' => esc_html__('Stuart client API ID', 'stuart-delivery') ,
+                    'title' => esc_html__('Stuart client API ID', 'stuart-delivery'),
                     'type' => 'text',
-                    'description' => '' ,
+                    'description' => '',
                     'default' => '' ,
-                    'tab' => "basic",
+                    'tab' => 'basic',
                     'header' => false
                 ),
                 'api_secret' => array(
-                    'title' => esc_html__('Stuart client API Secret', 'stuart-delivery') ,
+                    'title' => esc_html__('Stuart client API Secret', 'stuart-delivery'),
                     'type' => 'text',
-                    'description' => '' ,
+                    'description' => '',
                     'default' => '' ,
-                    'tab' => "basic",
+                    'tab' => 'basic',
                     'header' => false
                 ),
+                'api_id_sandbox' => array(
+                        'title' => esc_html__('Stuart Sandbox client API ID', 'stuart-delivery'),
+                        'type' => 'text',
+                        'description' => '' ,
+                        'default' => '' ,
+                        'tab' => 'basic',
+                        'header' => false
+                ),
+                'api_secret_sandbox' => array(
+                        'title' => esc_html__('Stuart Sandbox client API Secret', 'stuart-delivery'),
+                        'type' => 'text',
+                        'description' => '',
+                        'default' => '' ,
+                        'tab' => 'basic',
+                        'header' => false
+                ),
                 'price_type' => array(
-                    'title' => esc_html__('How is the shipping fee calculated?', 'stuart-delivery') ,
+                    'title' => esc_html__('How is the shipping fee calculated?', 'stuart-delivery'),
                     'type' => 'select',
-                    'description' => esc_html__('', 'stuart-delivery') ,
+                    'description' => esc_html__('', 'stuart-delivery'),
                     'default' => 'autocalculated',
                     'class' => 'price_type',
                     'tab' => 'basic',
@@ -173,155 +218,155 @@ if (! class_exists('StuartShippingMethod')) {
                     )
                 ),
                 'fixed_fee' => array(
-                    'title' => esc_html__('Shipping fee', 'stuart-delivery') ,
+                    'title' => esc_html__('Shipping fee', 'stuart-delivery'),
                     'type' => 'text',
-                    'description' => esc_html__('', 'stuart-delivery') ,
+                    'description' => esc_html__('', 'stuart-delivery'),
                     'class' => 'fixed',
                     'default' => '0.00',
                     'header' => false,
-                    'tab' => "basic"
+                    'tab' => 'basic'
                 ),
                 'extra_price' => array(
-                    'title' => esc_html__('How much to add over Stuart prices?', 'stuart-delivery') ,
+                    'title' => esc_html__('How much to add over Stuart prices?', 'stuart-delivery'),
                     'type' => 'text',
-                    'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery') ,
+                    'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery'),
                     'class' => 'add_over_stuart',
                     'default' => '0',
                     'header' => false,
-                    'tab' => "basic"
+                    'tab' => 'basic'
                 ),
                 'discount_price' => array(
-                    'title' => esc_html__('How much to discount from Stuart prices?', 'stuart-delivery') ,
+                    'title' => esc_html__('How much to discount from Stuart prices?', 'stuart-delivery'),
                     'type' => 'text',
-                    'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery') ,
+                    'description' => esc_html__('Units are relative to Stuart API prices. For example: 10 is 10% over Stuart price', 'stuart-delivery'),
                     'default' => '0',
                     'class' => 'discount_from_stuart',
                     'header' => false,
-                    'tab' => "basic"
+                    'tab' => 'basic'
                 ),
                 'free_shipping' => array(
-                    'title' => esc_html__('Do you offer free delivery after some price (tax included) ?', 'stuart-delivery') ,
+                    'title' => esc_html__('Do you offer free delivery after some price (tax included) ?', 'stuart-delivery'),
                     'type' => 'text',
-                    'description' => esc_html__('0.00 to disable', 'stuart-delivery') ,
+                    'description' => esc_html__('0.00 to disable', 'stuart-delivery'),
                     'default' => '0.00',
                     'header' => false,
-                    'tab' => "basic"
+                    'tab' => 'basic'
                 ),
                 'address' => array(
-                    'title' => esc_html__('Address of your store', 'stuart-delivery') ,
+                    'title' => esc_html__('Address of your store', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => 'Address',
-                    'description' => esc_html__('Street, building', 'stuart-delivery') ,
-                    'default' => esc_html__($store_address, 'stuart-delivery') ,
-                    'tab' => "basic"
+                    'description' => esc_html__('Street, building', 'stuart-delivery'),
+                    'default' => esc_html__($store_address, 'stuart-delivery'),
+                    'tab' => 'basic'
                 ),
                 'address_2' => array(
-                    'title' => esc_html__('Address 2 of your store', 'stuart-delivery') ,
+                    'title' => esc_html__('Address 2 of your store', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'description' => esc_html__('Office number or floor or flat', 'stuart-delivery') ,
-                    'default' => esc_html__($store_address_2, 'stuart-delivery') ,
-                    'tab' => "basic"
+                    'description' => esc_html__('Office number or floor or flat', 'stuart-delivery'),
+                    'default' => esc_html__($store_address_2, 'stuart-delivery'),
+                    'tab' => 'basic'
                 ),
                 'postcode' => array(
-                    'title' => esc_html__('Your store ZIP/Post Code', 'stuart-delivery') ,
+                    'title' => esc_html__('Your store ZIP/Post Code', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'default' => esc_html__($store_postcode, 'stuart-delivery') ,
-                    'tab' => "basic"
+                    'default' => esc_html__($store_postcode, 'stuart-delivery'),
+                    'tab' => 'basic'
                 ),
                 'city' => array(
-                    'title' => esc_html__('Your store city name', 'stuart-delivery') ,
+                    'title' => esc_html__('Your store city name', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'default' => esc_html__($store_city, 'stuart-delivery') ,
-                    'tab' => "basic"
+                    'default' => esc_html__($store_city, 'stuart-delivery'),
+                    'tab' => 'basic'
                 ),
                 'country' => array(
-                    'title' => esc_html__('Your store country name (in local language)', 'stuart-delivery') ,
+                    'title' => esc_html__('Your store country name (in local language)', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'default' => esc_html__($store_country, 'stuart-delivery') ,
-                    'tab' => "basic"
+                    'default' => esc_html__($store_country, 'stuart-delivery'),
+                    'tab' => 'basic'
                 ),
                 'first_name' => array(
-                    'title' => esc_html__('Pickup info: first name', 'stuart-delivery') ,
+                    'title' => esc_html__('Pickup info: first name', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'description' => esc_html__('First name of person to pickup products (i.e. your manager)', 'stuart-delivery') ,
-                    'default' => '' ,
-                    'tab' => "basic"
+                    'description' => esc_html__('First name of person to pickup products (i.e. your manager)', 'stuart-delivery'),
+                    'default' => '',
+                    'tab' => 'basic'
                 ),
                 'last_name' => array(
-                    'title' => esc_html__('Pickup info: last name', 'stuart-delivery') ,
+                    'title' => esc_html__('Pickup info: last name', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'description' => esc_html__('Last name of person to pickup products (i.e. your manager)', 'stuart-delivery') ,
-                    'default' => '' ,
-                    'tab' => "basic"
+                    'description' => esc_html__('Last name of person to pickup products (i.e. your manager)', 'stuart-delivery'),
+                    'default' => '',
+                    'tab' => 'basic'
                 ),
                 'company_name' => array(
-                    'title' => esc_html__('Pickup info: company name', 'stuart-delivery') ,
+                    'title' => esc_html__('Pickup info: company name', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'description' => esc_html__('Name of your company', 'stuart-delivery') ,
+                    'description' => esc_html__('Name of your company', 'stuart-delivery'),
                     'default' => esc_html__($blog_title, 'stuart-delivery') ,
-                    'tab' => "basic"
+                    'tab' => 'basic'
                 ),
                 'email' => array(
-                    'title' => esc_html__('Pickup info: e-mail', 'stuart-delivery') ,
+                    'title' => esc_html__('Pickup info: e-mail', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'description' => esc_html__('E-mail of your company/site/person', 'stuart-delivery') ,
-                    'default' => esc_html__($admin_email, 'stuart-delivery') ,
-                    'tab' => "basic"
+                    'description' => esc_html__('E-mail of your company/site/person', 'stuart-delivery'),
+                    'default' => esc_html__($admin_email, 'stuart-delivery'),
+                    'tab' => 'basic'
                 ),
                 'phone' => array(
-                    'title' => esc_html__('Pickup info: phone number', 'stuart-delivery') ,
+                    'title' => esc_html__('Pickup info: phone number', 'stuart-delivery'),
                     'type' => 'text',
                     'header' => false,
-                    'description' => esc_html__('Phone number of your company/site/person', 'stuart-delivery') ,
-                    'default' => '' ,
-                    'tab' => "basic"
+                    'description' => esc_html__('Phone number of your company/site/person', 'stuart-delivery'),
+                    'default' => '',
+                    'tab' => 'basic'
                 ),
                 'comment' => array(
-                    'title' => esc_html__('Pickup info: special instructions', 'stuart-delivery') ,
+                    'title' => esc_html__('Pickup info: special instructions', 'stuart-delivery'),
                     'type' => 'textarea',
-                    'description' => esc_html__('Some special instructions for Stuart courier to pickup', 'stuart-delivery') ,
+                    'description' => esc_html__('Some special instructions for Stuart courier to pickup', 'stuart-delivery'),
                     'default' => '' ,
-                    'tab' => "basic",
+                    'tab' => 'basic',
                     'header' => false,
                     'css' => 'width: 400px',
                     'multivendor' => true
                 ),
                 'only_postcodes' => array(
-                    'title' => esc_html__('Filter delivery by postcodes', 'stuart-delivery') ,
+                    'title' => esc_html__('Filter delivery by postcodes', 'stuart-delivery'),
                     'type' => 'textarea',
                     'css' => 'width: 400px',
                     'header' => false,
-                    'description' => esc_html__('Prevent delivery in some unexpected zones by allowing only certain postcodes. Indicate them like this "123456,1245367,21688" (separated by comma, no space). Leave empty to disable.', 'stuart-delivery') ,
-                    'default' => '' ,
-                    'tab' => "basic"
+                    'description' => esc_html__('Prevent delivery in some unexpected zones by allowing only certain postcodes. Indicate them like this "123456,1245367,21688" (separated by comma, no space). Leave empty to disable.', 'stuart-delivery'),
+                    'default' => '',
+                    'tab' => 'basic'
                 )
             );
             $fields['delay'] = array(
-                'title' => esc_html__('What is the delay to prepare the order ?', 'stuart-delivery') ,
+                'title' => esc_html__('What is the delay to prepare the order ?', 'stuart-delivery'),
                 'type' => 'text',
                 'header' => false,
-                'default' => '30' ,
-                'description' => esc_html__('Prevent courier to come before you can prepare by adding minutes here.', 'stuart-delivery') ,
-                'tab' => "hours",
+                'default' => '30',
+                'description' => esc_html__('Prevent courier to come before you can prepare by adding minutes here.', 'stuart-delivery'),
+                'tab' => 'hours',
                 'multivendor' => true
             );
             // Weekdays info
             $days_array = array(
-                "monday" => esc_html__('Monday', 'stuart-delivery'),
-                "tuesday" => esc_html__('Tuesday', 'stuart-delivery'),
-                "wednesday" => esc_html__('Wednesday', 'stuart-delivery'),
-                "thursday" => esc_html__('Thursday', 'stuart-delivery'),
-                "friday" => esc_html__('Friday', 'stuart-delivery'),
-                "saturday" => esc_html__('Saturday', 'stuart-delivery'),
-                "sunday" => esc_html__('Sunday', 'stuart-delivery')
+                'monday' => esc_html__('Monday', 'stuart-delivery'),
+                'tuesday' => esc_html__('Tuesday', 'stuart-delivery'),
+                'wednesday' => esc_html__('Wednesday', 'stuart-delivery'),
+                'thursday' => esc_html__('Thursday', 'stuart-delivery'),
+                'friday' => esc_html__('Friday', 'stuart-delivery'),
+                'saturday' => esc_html__('Saturday', 'stuart-delivery'),
+                'sunday' => esc_html__('Sunday', 'stuart-delivery')
             );
             foreach ($days_array as $day_name => $day_translation) {
                 $fields['working_'.$day_name] = array(
@@ -330,10 +375,10 @@ if (! class_exists('StuartShippingMethod')) {
                     'header' => false,
                     'default' => (in_array($day_name, array('pause', 'sunday', 'saturday')) ? 'no' : 'yes'),
                     'options' => array(
-                        "yes" => esc_html__('Yes', 'stuart-delivery'),
+                        'yes' => esc_html__('Yes', 'stuart-delivery'),
                         "no" => esc_html__('No', 'stuart-delivery')
                     ),
-                    'tab' => "hours",
+                    'tab' => 'hours',
                     'multivendor' => true
                 );
                 $fields['lowest_hour_'.$day_name] = array(
@@ -342,7 +387,7 @@ if (! class_exists('StuartShippingMethod')) {
                     'header' => false,
                     'default' => '9:30',
                     'description' => esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery') ,
-                    'tab' => "hours",
+                    'tab' => 'hours',
                     'multivendor' => true
                 );
                 $fields['highest_hour_'.$day_name] = array(
@@ -351,7 +396,7 @@ if (! class_exists('StuartShippingMethod')) {
                     'header' => false,
                     'default' => '21:30',
                     'description' => esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery'),
-                    'tab' => "hours",
+                    'tab' => 'hours',
                     'multivendor' => true
                 );
                 $fields['lowest_hour_pause_'.$day_name] = array(
@@ -360,7 +405,7 @@ if (! class_exists('StuartShippingMethod')) {
                     'default' => '00:00',
                     'header' => false,
                     'description' => esc_html__('Leave 00:00 to disable.', 'stuart-delivery').' '.esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery'),
-                    'tab' => "hours",
+                    'tab' => 'hours',
                     'multivendor' => true
                 );
                 $fields['highest_hour_pause_'.$day_name] = array(
@@ -369,7 +414,7 @@ if (! class_exists('StuartShippingMethod')) {
                     'default' => '00:00',
                     'header' => false,
                     'description' => esc_html__('Leave 00:00 to disable.', 'stuart-delivery').' '.esc_html__('Format this in 24H format 23:23 for 11PM 23 minutes', 'stuart-delivery'),
-                    'tab' => "hours",
+                    'tab' => 'hours',
                     'multivendor' => true
                 );
             }
@@ -379,7 +424,7 @@ if (! class_exists('StuartShippingMethod')) {
                 'header' => false,
                 'default' => '1/01,11/11,18/05',
                 'description' => esc_html__('Indicate day and month and separate by coma, for example :', 'stuart-delivery') . ' 1/01,11/11,18/05',
-                'tab' => "hours",
+                'tab' => 'hours',
                 'multivendor' => true
             );
             // Product categories info
@@ -407,7 +452,7 @@ if (! class_exists('StuartShippingMethod')) {
             );
             // Stuart custom settings
             $fields['create_delivery_mode'] = array(
-                'title' => esc_html__('When should the Delivery be created?', 'stuart-delivery') ,
+                'title' => esc_html__('When should the Delivery be created?', 'stuart-delivery'),
                 'type' => 'select',
                 'header' => false,
                 'options' => array(
@@ -418,7 +463,7 @@ if (! class_exists('StuartShippingMethod')) {
                 ),
                 'description' => esc_html__('', 'stuart-delivery'),
                 'default' => 'procesing',
-                'tab' => "advanced",
+                'tab' => 'advanced',
                 'multivendor' => true,
             );
             $fields['cancel_delivery_on_order_cancel'] = array(
@@ -426,24 +471,24 @@ if (! class_exists('StuartShippingMethod')) {
               'type' => 'select',
               'header' => false,
               'options' => array(
-                  "yes" => esc_html__('Yes', 'stuart-delivery'),
-                  "no" => esc_html__('No', 'stuart-delivery')
+                  'yes' => esc_html__('Yes', 'stuart-delivery'),
+                  'no' => esc_html__('No', 'stuart-delivery')
               ),
               'description' => esc_html__('', 'stuart-delivery'),
               'default' => 'yes',
-              'tab' => "advanced",
+              'tab' => 'advanced',
             );
             $fields['cancel_delivery_on_order_refund'] = array(
                 'title' => esc_html__('Cancel Stuart Delivery on order refunded', 'stuart-delivery'),
                 'type' => 'select',
                 'header' => false,
                 'options' => array(
-                    "yes" => esc_html__('Yes', 'stuart-delivery'),
-                    "no" => esc_html__('No', 'stuart-delivery')
+                    'yes' => esc_html__('Yes', 'stuart-delivery'),
+                    'no' => esc_html__('No', 'stuart-delivery')
                 ),
                 'description' => esc_html__('Enable to cancel Stuart delivery, when order is refunded', 'stuart-delivery'),
                 'default' => 'yes',
-                'tab' => "advanced"
+                'tab' => 'advanced'
             );
   
             $fields['days_limit'] = array(
@@ -452,33 +497,33 @@ if (! class_exists('StuartShippingMethod')) {
                 'header' => false,
                 'default' => '21',
                 'description' => esc_html__('3 weeks by default. Cannot be shorter than 1.', 'stuart-delivery'),
-                'tab' => "advanced"
+                'tab' => 'advanced'
             );
             $fields['env'] = array(
                 'title' =>  esc_html__('Is this a production account ?', 'stuart-delivery'),
                 'type' => 'select',
                 'header' => 'Environment',
                 'options' => array(
-                    "yes" => esc_html__('Yes', 'stuart-delivery'),
-                    "no" => esc_html__('No', 'stuart-delivery')
+                    'yes' => esc_html__('Yes', 'stuart-delivery'),
+                    'no' => esc_html__('No', 'stuart-delivery')
                 ),
                 'value' => 'yes',
                 'default' => 'yes',
                 'description' => esc_html__('Uncheck to use sandbox version', 'stuart-delivery'),
-                'tab' => "advanced"
+                'tab' => 'advanced'
             );
             $fields['debug_mode'] = array(
                 'title' =>  esc_html__('Debug logs', 'stuart-delivery'),
                 'type' => 'select',
                 'header' => false,
                 'options' => array(
-                    "yes" => esc_html__('Yes', 'stuart-delivery'),
-                    "no" => esc_html__('No', 'stuart-delivery')
+                    'yes' => esc_html__('Yes', 'stuart-delivery'),
+                    'no' => esc_html__('No', 'stuart-delivery')
                 ),
                 'value' => 'yes',
                 'default' => 'no',
                 'description' => esc_html__('It will create more logs and allow you to have a better insight of what is happening. Logs are encrypted and deleted after one month for security purpose.', 'stuart-delivery'),
-                'tab' => "advanced"
+                'tab' => 'advanced'
             );
   
             return apply_filters('stuart_settings_fields', $fields);
@@ -611,7 +656,7 @@ if (! class_exists('StuartShippingMethod')) {
                     $type = $log['type'];
                     $time = $log['date_created'];
 
-                    echo "<tr><td>".$time."</td><td>".$type."</td><td>".$content."</td></tr>";
+                    echo '<tr><td>'.$time.'</td><td>'.$type.'</td><td>'.$content.'</td></tr>';
                 }
             }
             echo "<tbody>"; ?>
@@ -673,7 +718,7 @@ if (! class_exists('StuartShippingMethod')) {
                 return;
             }
 
-            if ($this->getOption('debug_mode') == "yes") {
+            if ($this->getOption('debug_mode') == 'yes') {
                 $this->addLog('calculate_shipping::package', $package);
             }
 
@@ -773,15 +818,13 @@ if (! class_exists('StuartShippingMethod')) {
             $url = '/oauth/token';
       
             $params = array(
-                "client_id" => $this->api_client_id,
-                "client_secret" => $this->api_client_ps,
-                "scope" => "api",
-                "grant_type" => "client_credentials"
+                'client_id' => $this->api_client_id,
+                'client_secret' => $this->api_client_ps,
+                'scope' => 'api',
+                'grant_type' => "client_credentials"
             );
 
-            $obj = $this->makeApiRequest($url, false, $params);
-
-            return $obj;
+            return $this->makeApiRequest($url, false, $params);
         }
 
         public function setStuartAuth($refresh = false, $return_object = false)
@@ -794,7 +837,7 @@ if (! class_exists('StuartShippingMethod')) {
                 if ($refresh === false && $previous_account == $current_account) {
                     $expired = (time() + 100) >= (int) $this->getOption('token_expire');
 
-                    if ($expired == false) {
+                    if ( !$expired ) {
                         return $access_token;
                     }
                 }
@@ -826,9 +869,9 @@ if (! class_exists('StuartShippingMethod')) {
         private function makeApiRequest($url, $token = false, $params = array(), $return_array = false, $check_httpcode = false)
         {
             $request = array(
-                "url" => $url,
-                "params" => $params,
-                "token" => $token
+                'url' => $url,
+                'params' => $params,
+                'token' => $token
             );
 
             $hash = md5(serialize($request));
@@ -853,7 +896,7 @@ if (! class_exists('StuartShippingMethod')) {
             if (!empty($params)) {
                 if (is_object($params)) {
                     $fields = json_encode($params);
-                    $headers[] = "Content-Type: application/json";
+                    $headers[] = 'Content-Type: application/json';
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
                     curl_setopt($ch, CURLOPT_POST, true);
                 } elseif (is_array($params)) {
@@ -866,18 +909,18 @@ if (! class_exists('StuartShippingMethod')) {
                     }
 
                     $fields = implode('&', $str);
-                    $headers[] = "Content-Type: application/x-www-form-urlencoded";
+                    $headers[] = 'Content-Type: application/x-www-form-urlencoded';
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
                     curl_setopt($ch, CURLOPT_POST, true);
                 } elseif (is_string($params)) {
-                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
                 }
             } else {
                 if (strpos($url, '/v2/jobs') === false) {
                     curl_setopt($ch, CURLOPT_POSTFIELDS, array());
                 }
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
             }
 
             if (!empty($headers)) {
@@ -888,7 +931,7 @@ if (! class_exists('StuartShippingMethod')) {
             
             $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-            if ($check_httpcode == true) {
+            if ( $check_httpcode ) {
                 if ((int) $httpcode >= 300) {
                     $response = false;
                 } else {
@@ -898,7 +941,7 @@ if (! class_exists('StuartShippingMethod')) {
                 }
             }
 
-            if ($this->getOption('debug_mode') == "yes" && $token !== false) {
+            if ($this->getOption('debug_mode') == 'yes' && $token !== false) {
                 $log = array('reponse' => $res, 'params' => $params);
                 $this->addLog('makeApiRequest::'.$url, $log);
             }
@@ -909,7 +952,7 @@ if (! class_exists('StuartShippingMethod')) {
                 $object = json_decode($res, $return_array);
                 $this->request_processed[$hash] = $object;
             } else {
-                $this->request_processed[$hash] = "";
+                $this->request_processed[$hash] = '';
             }
 
             return $response !== false ? $this->request_processed[$hash] : $response;
@@ -920,7 +963,7 @@ if (! class_exists('StuartShippingMethod')) {
             $token = $this->setStuartAuth();
 
             if (!empty($token) && !empty($id_job)) {
-                $request = "/v2/jobs/".$id_job;
+                $request = '/v2/jobs/'.$id_job;
 
                 $return = $this->makeApiRequest($request, $token);
 
@@ -1250,19 +1293,6 @@ if (! class_exists('StuartShippingMethod')) {
                 $this->addLog('getPackagesType::CartPackageOversize', $log);
             }
 
-            /*if ($fits_in && $country == 'fr') {
-                $french_types = array(
-                    "small" => "bike",
-                    "medium" => "motorbike",
-                    "large" => "cargobike",
-                    "xlarge" => "cargobikexl"
-                );
-
-                if (isset($french_types[$fits_in])) {
-                    return $french_types[$fits_in];
-                }
-            }*/
-
             return $fits_in;
         }
 
@@ -1346,13 +1376,13 @@ if (! class_exists('StuartShippingMethod')) {
                 parse_str(wp_unslash($_REQUEST['post_data']), $datas);
 
                 $things_to_check = array(
-                    "address_1",
-                    "address_2",
-                    "postcode",
-                    "country",
-                    "city",
-                    "first_name",
-                    "last_name"
+                    'address_1',
+                    'address_2',
+                    'postcode',
+                    'country',
+                    'city',
+                    'first_name',
+                    'last_name'
                 );
 
                 $use_billing = wc_ship_to_billing_address_only() || (isset($_REQUEST['ship_to_different_address']) && !empty($_REQUEST['ship_to_different_address']) && (string) $_REQUEST['ship_to_different_address'] == "1");
@@ -1382,14 +1412,14 @@ if (! class_exists('StuartShippingMethod')) {
 
             $pickup_time = $this->getPickupTime($object);
 
-            if ($this->getOption('debug_mode') == "yes") {
+            if ($this->getOption('debug_mode') == 'yes') {
                 $this->addLog('prepareJobObject::getPickupTime', $pickup_time);
             }
 
             if (is_numeric($pickup_time) || ($pickup_time != 'now' && $this->validateDate($pickup_time))) {
-                if (is_a($object, 'WC_Order') || $this->isDeliveryTime($pickup_time, $object) == true) {
+                if (is_a($object, 'WC_Order') || $this->isDeliveryTime($pickup_time, $object)) {
                     if (is_numeric($pickup_time)) {
-                        $pickup_date = new DateTime("@".$pickup_time);
+                        $pickup_date = new DateTime('@'.$pickup_time);
                     } else {
                         $pickup_date = new DateTime($pickup_time);
                     }
@@ -1409,9 +1439,9 @@ if (! class_exists('StuartShippingMethod')) {
                 $this->setPickupTime($pickup_date);
             }
 
-            /*if (empty($address_1)) {
+            if (empty($address_1)) {
                 return false;
-            }*/
+            }
 
             $address_str = $address_1.' , '.$postcode.' '.$city;
             
@@ -1424,7 +1454,7 @@ if (! class_exists('StuartShippingMethod')) {
                     $allowed_postcodes = explode(',', $filter_postcodes);
 
                     if (!empty($allowed_postcodes) && !in_array($postcode, $allowed_postcodes)) {
-                        if ($this->getOption('debug_mode') == "yes") {
+                        if ($this->getOption('debug_mode') == 'yes') {
                             $this->addLog('prepareJobObject::FilteredPostcodes', array('filter_postcodes' => $allowed_postcodes, 'postcode' => $postcode));
                         }
 
@@ -1502,7 +1532,6 @@ if (! class_exists('StuartShippingMethod')) {
             return apply_filters('stuart_job_object', $params, $object);
         }
 
-
         public function getSession($order_id = false)
         {
             $session = WC()->session;
@@ -1545,21 +1574,11 @@ if (! class_exists('StuartShippingMethod')) {
 
                 $time = $pickup_str === "" ? $this->getNextDeliveryTime() : $this->getTime($pickup_str);
 
-                if ($this->getOption('debug_mode') == "yes") {
+                if ($this->getOption('debug_mode') == 'yes') {
                     $this->addLog('getPickupTime::OrderObject', array('order_id' => is_a($object, 'WC_Order') ? $object->get_id() : '', 'pickup_str' => $pickup_str, 'pickup_date' => $this->dateToFormat($time, 'c'), 'is_delivery_time' => $this->isDeliveryTime($time, $object)));
                 }
                 return $time;
             }
-
-            /*
-            $session = $this->getSession();
-
-            if (empty($session)) {
-                $pickup = false;
-            } else {
-                $pickup = $session->get('stuart_pickup_time');
-            }
-            */
 
             if (!empty($pickup)) {
                 if (is_numeric($pickup)) {
@@ -1587,7 +1606,7 @@ if (! class_exists('StuartShippingMethod')) {
             $date->setTimezone($this->getTimeZone());
             $pickup_time = $date->format('U');
 
-            if ($this->getOption('debug_mode') == "yes") {
+            if ($this->getOption('debug_mode') == 'yes') {
                 $this->addLog('getPickupTime::pickupTime', $pickup_time);
             }
 
@@ -1628,7 +1647,7 @@ if (! class_exists('StuartShippingMethod')) {
                 $obj->setDate($year, $month, $day);
             }
 
-            if (strpos($time, ":") !== false) {
+            if (strpos($time, ':') !== false) {
                 if (empty($date)) {
                     $date = 'today';
                 }
@@ -1646,7 +1665,7 @@ if (! class_exists('StuartShippingMethod')) {
 
         public function setPickupTime($pickup_time, $order_id = false)
         {
-            if ($this->getOption('debug_mode') == "yes") {
+            if ($this->getOption('debug_mode') == 'yes') {
                 $this->addLog('setPickupTime::pickup_time', $pickup_time);
             }
             if (!empty($pickup_time)) {
@@ -1737,13 +1756,13 @@ if (! class_exists('StuartShippingMethod')) {
             $days_limit = (int) $this->getOption('days_limit', $context) > 0 && (int) $this->getOption('days_limit', $context) < 93 ? (int) $this->getOption('days_limit', $context) : 21 ;
             $first_day = true;
             $days_numbers = array(
-                "1" => 'monday',
-                "2" => 'tuesday',
-                "3" => 'wednesday',
-                "4" => 'thursday',
-                "5" => 'friday',
-                "6" => 'saturday',
-                "7" => 'sunday'
+                '1' => 'monday',
+                '2' => 'tuesday',
+                '3' => 'wednesday',
+                '4' => 'thursday',
+                '5' => 'friday',
+                '6' => 'saturday',
+                '7' => 'sunday'
             );
 
             $delay = (int) $this->getOption('delay', $context);
@@ -1779,7 +1798,7 @@ if (! class_exists('StuartShippingMethod')) {
                 }
             }
 
-            if ($this->getOption('debug_mode') == "yes") {
+            if ($this->getOption('debug_mode') == 'yes') {
                 $this->addLog('getDeliveryTimeList::timeList', $result);
             }
 
@@ -1809,13 +1828,13 @@ if (! class_exists('StuartShippingMethod')) {
             }
 
             $days_numbers = array(
-              "1" => 'monday',
-              "2" => 'tuesday',
-              "3" => 'wednesday',
-              "4" => 'thursday',
-              "5" => 'friday',
-              "6" => 'saturday',
-              "7" => 'sunday'
+              '1' => 'monday',
+              '2' => 'tuesday',
+              '3' => 'wednesday',
+              '4' => 'thursday',
+              '5' => 'friday',
+              '6' => 'saturday',
+              '7' => 'sunday'
             );
 
             $day = (string) $this->dateToFormat($pickup_time, 'N');
@@ -1889,8 +1908,7 @@ if (! class_exists('StuartShippingMethod')) {
             }
 
             $order = new WC_Order($order_id);
-
-            if ((bool) $order->get_meta('has_sub_order') == true) {
+            if ($order->get_meta('has_sub_order')) {
                 return false;
             }
 
@@ -1906,7 +1924,7 @@ if (! class_exists('StuartShippingMethod')) {
 
             update_post_meta($order_id, 'stuart_job_creation', 1);
 
-            if ($this->getOption('debug_mode') == "yes") {
+            if ($this->getOption('debug_mode') == 'yes') {
                 $this->addLog('createJob::data', array('params' => $params, 'order_id'=> $order_id));
             }
 
@@ -1977,9 +1995,8 @@ if (! class_exists('StuartShippingMethod')) {
                 $meta = $order->get_meta('stuart_job_id', true);
 
                 return apply_filters('stuart_get_job_id', $meta, $order);
-            } else {
-                return false;
             }
+            return false;
         }
 
         public function cancelJob($order_id)
@@ -2022,14 +2039,22 @@ if (! class_exists('StuartShippingMethod')) {
             ?>
             <div id="connexion-status" class="update-stuart-delivery">
                 
-              <p style='color: #27ae60;'><?php esc_html_e('Your website is connected to the Stuart API and running.', 'stuart-delivery'); ?></p>
+                <p style='color: #27ae60;'>
+                <?php
+                    if( $this->getOption('env') == 'yes' ){
+                        esc_html_e('Your website is connected to the Stuart API and running.', 'stuart-delivery');
+                    } else {
+                        esc_html_e('Your website is connected to the Stuart SANDBOX API and running.', 'stuart-delivery');
+                    }
+                ?>
+                </p>
 
               <?php
 
                 $state = $this->getOption('licence_status');
 
             if (empty($state)) {
-                $state = "inactive";
+                $state = 'inactive';
             } ?>
             </div>
           <?php
@@ -2038,15 +2063,21 @@ if (! class_exists('StuartShippingMethod')) {
         public function notConnectedNotice($obj = false)
         {
             ?>
-            <div id="connexion-status" class="update-stuart-delivery" style='color: red;'>
-                <p><?php esc_html_e('Your website cannot connect to the Stuart API. Please verify informations provided.', 'stuart-delivery'); ?></p>
+            <div id="connexion-status" class="update-stuart-delivery" style='color:red;'>
+                <p><?php
+                    if( $this->getOption('env') == 'yes' ){
+                        esc_html_e('Your website cannot connect to the Stuart API. Please verify informations provided.', 'stuart-delivery');
+                    } else {
+                        esc_html_e('Your website cannot connect to the Stuart SANDBOX API. Please verify informations provided.', 'stuart-delivery');
+                    }
+                ?></p>
                 <?php
 
                   if (!empty($obj) && isset($obj->error_description)) {
-                      echo "<p><b>".$obj->error_description."</b></p>";
+                      echo '<p><b>'.$obj->error_description.'</b></p>';
                     
                       if (isset($obj->error)) {
-                          echo "<p><i>".$obj->error."</i></p>";
+                          echo '<p><i>'.$obj->error.'</i></p>';
                       }
                   } ?>
             </div>
@@ -2090,12 +2121,12 @@ if (! class_exists('StuartShippingMethod')) {
                 }
             }
 
-            if ($this->getOption('debug_mode') == "yes" && !empty($orders_changed)) {
+            if ($this->getOption('debug_mode') == 'yes' && !empty($orders_changed)) {
                 $this->addLog('checkJobStates::ordersChanged', array($orders_changed));
             }
         }
 
-        public function checkAddressInZone($address_str, $type = "picking")
+        public function checkAddressInZone($address_str, $type = 'picking')
         {
             $token = $this->setStuartAuth();
 
@@ -2119,7 +2150,7 @@ if (! class_exists('StuartShippingMethod')) {
             if ($this->getOption('delay', $context) !== false) {
                 $delay = (int) $this->getOption('delay', $context);
 
-                if ($this->getOption('debug_mode') == "yes") {
+                if ($this->getOption('debug_mode') == 'yes') {
                     $this->addLog('getDelay::delay', $delay);
                 }
             }
@@ -2136,11 +2167,11 @@ if (! class_exists('StuartShippingMethod')) {
             $delay = $this->getDelay();
             $startingPoint = $time === 'now' ? time() : $time;
             $firstTimeAvailable = $startingPoint + ($delay * 60);
-            if ($this->getOption('debug_mode') == "yes") {
+            if ($this->getOption('debug_mode') == 'yes') {
                 $this->addLog('getNextDeliveryTime::firstTimeAvailable', $firstTimeAvailable);
             }
             while (!$this->isDeliveryTime($firstTimeAvailable)) {
-                if ($this->getOption('debug_mode') == "yes") {
+                if ($this->getOption('debug_mode') == 'yes') {
                     $this->addLog('getNextDeliveryTime::firstTimeAvailable::Loop', $firstTimeAvailable);
                 }
                 $firstTimeAvailable += ($delay * 60);

@@ -6,10 +6,11 @@
     Author: Oxygenz
     Original Author: Jose Hervas Diaz - https://github.com/StuartApp/stuart-woocommerce-plugin
     Forked on: 2023-02-09
-    Version: 1.2
+    Version: 1.3
     License : GPL
     Text Domain: stuart-delivery
     Domain Path: /languages/
+    Requires Plugins: woocommerce
 */
 
 // Prevent direct access to this php file through URL
@@ -23,7 +24,7 @@ require_once(plugin_dir_path(__FILE__) . '/interfaces/plugin-controller.php');
 
 class Stuart implements MainPluginController
 {
-    public $version = '1.2';
+    public $version = '1.3';
     public $settings;
     public $file = __FILE__;
     private static $instance;
@@ -719,15 +720,13 @@ class Stuart implements MainPluginController
             $the_pickup = $delivery->dateToFormat($pickup_time + $delay, 'H:i');
         }
 
-        if ($delivery->getOption('create_delivery_mode', $order) !== "manual") {
-            echo "
-            <div class='stuart_order_confirmation_follow'>
-                <h3>".esc_html__('Follow your order', 'stuart-delivery')."</h3>
-                <p><i>".esc_html__('Your package will depart from the store around', 'stuart-delivery')." ".esc_html($the_date)." - ".esc_html($the_pickup)."</i> <a target='_blank' href='".esc_url($followurl)."'>(".esc_html__('Link', 'stuart-delivery').")</a></p>
-                <iframe class='stuart-order-follow-iframe' border='0' style='width: 100%; display: block; margin: 20px auto; min-height: 350px; border: 1px solid #F2F2F2;' src='".esc_url($followurl)."'></iframe>
-            </div>
-            ";
-        }
+        echo "
+        <div class='stuart_order_confirmation_follow'>
+            <h3>".esc_html__('Follow your order', 'stuart-delivery')."</h3>
+            <p><i>".esc_html__('Your package will depart from the store around', 'stuart-delivery')." ".esc_html($the_date)." - ".esc_html($the_pickup)."</i> <a target='_blank' href='".esc_url($followurl)."'>(".esc_html__('Link', 'stuart-delivery').")</a></p>
+            <iframe class='stuart-order-follow-iframe' border='0' style='width: 100%; display: block; margin: 20px auto; min-height: 350px; border: 1px solid #F2F2F2;' src='".esc_url($followurl)."'></iframe>
+        </div>
+        ";
     }
 
     // Singleton

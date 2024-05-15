@@ -7,7 +7,7 @@ interface StuartCustomShippingMethod
     public function __construct($instance_id = 0);
     // Logs management
     public function purgeLogs();
-    public function addLog($type = '', $content);
+    public function addLog($type, $content);
     // Plugin settings
     public function getFields();
     public function admin_options();
