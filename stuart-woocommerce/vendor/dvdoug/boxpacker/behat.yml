@@ -4,9 +4,15 @@ default:
       paths:
         - '%paths.base%/features/common'
       contexts: [ PackerContext ]
+    infallible_packer:
+      paths:
+        - '%paths.base%/features/common'
+        - '%paths.base%/features/infallible'
+      contexts: [ InfalliblePackerContext ]
 
   extensions:
     DVDoug\Behat\CodeCoverage\Extension:
+      cache: build/php-code-coverage-cache
       filter:
         include:
           directories:

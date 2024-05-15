@@ -13,7 +13,6 @@ class ComposerStaticInit87a6d2342c3baae250a0b110bdb2a471
         ),
         'D' => 
         array (
-            'DVDoug\\BoxPacker\\Test\\' => 22,
             'DVDoug\\BoxPacker\\' => 17,
         ),
     );
@@ -21,15 +20,12 @@ class ComposerStaticInit87a6d2342c3baae250a0b110bdb2a471
     public static $prefixDirsPsr4 = array (
         'Psr\\Log\\' => 
         array (
-            0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
-        ),
-        'DVDoug\\BoxPacker\\Test\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/dvdoug/boxpacker/tests/Test',
+            0 => __DIR__ . '/..' . '/psr/log/src',
         ),
         'DVDoug\\BoxPacker\\' => 
         array (
             0 => __DIR__ . '/..' . '/dvdoug/boxpacker/src',
+            1 => __DIR__ . '/..' . '/dvdoug/boxpacker/tests',
         ),
     );
 

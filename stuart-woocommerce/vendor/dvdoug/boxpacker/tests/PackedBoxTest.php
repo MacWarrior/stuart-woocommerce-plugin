@@ -4,11 +4,16 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
 
 use DVDoug\BoxPacker\Test\TestBox;
 use DVDoug\BoxPacker\Test\TestItem;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
+
+use function json_encode;
 
 /**
  * @covers \DVDoug\BoxPacker\PackedBox
@@ -18,39 +23,38 @@ class PackedBoxTest extends TestCase
     /**
      * Test various getters work correctly.
      */
-    public function testGetters()
+    public function testGetters(): void
     {
         $box = new TestBox('Box', 370, 375, 60, 140, 364, 374, 40, 3000);
-        $item = new OrientatedItem(new TestItem('Item', 230, 330, 6, 320, true), 230, 330, 6);
+        $item = new OrientatedItem(new TestItem('Item', 230, 330, 6, 320, Rotation::BestFit), 230, 330, 6);
 
         $packedItemList = new PackedItemList();
         $packedItemList->insert(PackedItem::fromOrientatedItem($item, 0, 0, 0));
 
-        $packedBox = PackedBox::fromPackedItemList($box, $packedItemList);
+        $packedBox = new PackedBox($box, $packedItemList);
 
         self::assertEquals($box, $packedBox->getBox());
-        self::assertEquals($packedItemList->asItemList(), $packedBox->getItems());
+        self::assertEquals($packedItemList, $packedBox->getItems());
         self::assertEquals(460, $packedBox->getWeight());
         self::assertEquals(134, $packedBox->getRemainingWidth());
         self::assertEquals(44, $packedBox->getRemainingLength());
         self::assertEquals(34, $packedBox->getRemainingDepth());
         self::assertEquals(2540, $packedBox->getRemainingWeight());
         self::assertEquals(5445440, $packedBox->getInnerVolume());
-        self::assertEquals($packedItemList, $packedBox->getPackedItems());
     }
 
     /**
      * Test that volume utilisation is calculated correctly.
      */
-    public function testVolumeUtilisation()
+    public function testVolumeUtilisation(): void
     {
         $box = new TestBox('Box', 10, 10, 20, 10, 10, 10, 20, 10);
-        $item = new OrientatedItem(new TestItem('Item', 4, 10, 10, 10, true), 4, 10, 10);
+        $item = new OrientatedItem(new TestItem('Item', 4, 10, 10, 10, Rotation::BestFit), 4, 10, 10);
 
         $boxItems = new PackedItemList();
         $boxItems->insert(PackedItem::fromOrientatedItem($item, 0, 0, 0));
 
-        $packedBox = PackedBox::fromPackedItemList($box, $boxItems);
+        $packedBox = new PackedBox($box, $boxItems);
 
         self::assertEquals(400, $packedBox->getUsedVolume());
         self::assertEquals(1600, $packedBox->getUnusedVolume());
@@ -60,25 +64,40 @@ class PackedBoxTest extends TestCase
     /**
      * Test that caching of weight calculation works correctly.
      */
-    public function testWeightCalcCaching()
+    public function testWeightCalcCaching(): void
     {
         $box = new TestBox('Box', 10, 10, 20, 10, 10, 10, 20, 10);
-        $item = new OrientatedItem(new TestItem('Item', 4, 10, 10, 10, true), 4, 10, 10);
+        $item = new OrientatedItem(new TestItem('Item', 4, 10, 10, 10, Rotation::BestFit), 4, 10, 10);
 
         $boxItems = new PackedItemList();
         $boxItems->insert(PackedItem::fromOrientatedItem($item, 0, 0, 0));
 
-        $packedBox = PackedBox::fromPackedItemList($box, $boxItems);
+        $packedBox = new PackedBox($box, $boxItems);
 
         self::assertEquals(10, $packedBox->getItemWeight());
 
-        //inspect cache, then poke at the value and see if it's returned correctly
-        $cachedValue = new \ReflectionProperty($packedBox, 'itemWeight');
+        // inspect cache, then poke at the value and see if it's returned correctly
+        $cachedValue = new ReflectionProperty($packedBox, 'itemWeight');
         $cachedValue->setAccessible(true);
-        $cachedValue->getValue($packedBox);
         self::assertEquals(10, $cachedValue->getValue($packedBox));
 
         $cachedValue->setValue($packedBox, 30);
         self::assertEquals(30, $cachedValue->getValue($packedBox));
+    }
+
+    /**
+     * Test JSON representation.
+     */
+    public function testJsonSerialize(): void
+    {
+        $box = new TestBox('Box', 10, 10, 20, 10, 10, 10, 20, 10);
+        $item = new OrientatedItem(new TestItem('Item', 4, 10, 10, 10, Rotation::KeepFlat), 4, 10, 10);
+
+        $boxItems = new PackedItemList();
+        $boxItems->insert(PackedItem::fromOrientatedItem($item, 0, 0, 0));
+
+        $packedBox = new PackedBox($box, $boxItems);
+
+        self::assertJsonStringEqualsJsonString('{"box":{"reference":"Box","innerWidth":10,"innerLength":10,"innerDepth":20,"maxWeight":10,"emptyWeight":10},"items":[{"x":0,"y":0,"z":0,"width":4,"length":10,"depth":10,"item":{"description":"Item","width":4,"length":10,"depth":10,"keepFlat":true,"weight":10}}]}', json_encode($packedBox));
     }
 }

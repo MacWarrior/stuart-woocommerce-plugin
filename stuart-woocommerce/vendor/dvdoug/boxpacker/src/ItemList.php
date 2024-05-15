@@ -4,160 +4,187 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
+
+use ArrayIterator;
+use Countable;
+use IteratorAggregate;
+use Traversable;
+
+use function array_key_last;
+use function array_pop;
+use function array_reverse;
+use function array_slice;
+use function count;
+use function current;
+use function end;
+use function key;
+use function prev;
+use function usort;
 
 /**
  * List of items to be packed, ordered by volume.
- *
- * @author Doug Wright
  */
-class ItemList extends \SplMaxHeap
+class ItemList implements Countable, IteratorAggregate
 {
     /**
-     * Does this list contain constrained items?
-     *
-     * @var bool
+     * @var Item[]
      */
-    private $hasConstrainedItems;
+    private array $list = [];
+
+    private bool $isSorted = false;
+
+    private ItemSorter $sorter;
 
     /**
-     * Compare elements in order to place them correctly in the heap while sifting up.
-     *
-     * @see \SplMaxHeap::compare()
-     *
-     * @param mixed $itemA
-     * @param mixed $itemB
-     *
-     * @return int
+     * Does this list contain constrained items?
      */
-    public function compare($itemA, $itemB)
+    private ?bool $hasConstrainedItems = null;
+
+    public function __construct(ItemSorter $sorter = null)
     {
-        if ($itemA->getVolume() > $itemB->getVolume()) {
-            return 1;
-        } elseif ($itemA->getVolume() < $itemB->getVolume()) {
-            return -1;
-        } elseif ($itemA->getWeight() !== $itemB->getWeight()) {
-            return $itemA->getWeight() - $itemB->getWeight();
-        } elseif ($itemA->getDescription() < $itemB->getDescription()) {
-            return 1;
-        } else {
-            return -1;
-        }
+        $this->sorter = $sorter ?: new DefaultItemSorter();
     }
 
     /**
      * Do a bulk create.
      *
-     * @param  Item[]   $items
-     * @return ItemList
+     * @param Item[] $items
      */
-    public static function fromArray(array $items)
+    public static function fromArray(array $items, bool $preSorted = false): self
     {
-        $list = new static();
-        foreach ($items as $item) {
-            $list->insert($item);
-        }
+        $list = new self();
+        $list->list = array_reverse($items); // internal sort is largest at the end
+        $list->isSorted = $preSorted;
+
         return $list;
     }
 
-    /**
-     * Get copy of this list as a standard PHP array.
-     *
-     * @return Item[]
-     */
-    public function asArray()
+    public function insert(Item $item, int $qty = 1): void
     {
-        $return = [];
-        foreach (clone $this as $item) {
-            $return[] = $item;
+        for ($i = 0; $i < $qty; ++$i) {
+            $this->list[] = $item;
+        }
+        $this->isSorted = false;
+
+        if (isset($this->hasConstrainedItems)) { // normally lazy evaluated, override if that's already been done
+            $this->hasConstrainedItems = $this->hasConstrainedItems || $item instanceof ConstrainedPlacementItem;
+        }
+    }
+
+    /**
+     * Remove item from list.
+     */
+    public function remove(Item $item): void
+    {
+        if (!$this->isSorted) {
+            usort($this->list, [$this->sorter, 'compare']);
+            $this->list = array_reverse($this->list); // internal sort is largest at the end
+            $this->isSorted = true;
         }
 
-        return $return;
+        end($this->list);
+        do {
+            if (current($this->list) === $item) {
+                unset($this->list[key($this->list)]);
+
+                return;
+            }
+        } while (prev($this->list) !== false);
+    }
+
+    public function removePackedItems(PackedItemList $packedItemList): void
+    {
+        foreach ($packedItemList as $packedItem) {
+            end($this->list);
+            do {
+                if (current($this->list) === $packedItem->getItem()) {
+                    unset($this->list[key($this->list)]);
+
+                    break;
+                }
+            } while (prev($this->list) !== false);
+        }
     }
 
     /**
      * @internal
-     *
-     * @param  int      $n
-     * @return ItemList
      */
-    public function topN($n)
+    public function extract(): Item
     {
-        $workingList = clone $this;
-        $topNList = new self();
-        $i = 0;
-        while(!$workingList->isEmpty() && $i < $n) {
-            $topNList->insert($workingList->extract());
-            $i++;
+        if (!$this->isSorted) {
+            usort($this->list, [$this->sorter, 'compare']);
+            $this->list = array_reverse($this->list); // internal sort is largest at the end
+            $this->isSorted = true;
         }
+
+        return array_pop($this->list);
+    }
+
+    /**
+     * @internal
+     */
+    public function top(): Item
+    {
+        if (!$this->isSorted) {
+            usort($this->list, [$this->sorter, 'compare']);
+            $this->list = array_reverse($this->list); // internal sort is largest at the end
+            $this->isSorted = true;
+        }
+
+        return $this->list[array_key_last($this->list)];
+    }
+
+    /**
+     * @internal
+     */
+    public function topN(int $n): self
+    {
+        if (!$this->isSorted) {
+            usort($this->list, [$this->sorter, 'compare']);
+            $this->list = array_reverse($this->list); // internal sort is largest at the end
+            $this->isSorted = true;
+        }
+
+        $topNList = new self();
+        $topNList->list = array_slice($this->list, -$n, $n);
+        $topNList->isSorted = true;
 
         return $topNList;
     }
 
     /**
-     * Remove item from list.
-     *
-     * @param Item $item
+     * @return Traversable<Item>
      */
-    public function remove(Item $item)
+    public function getIterator(): Traversable
     {
-        $workingSet = [];
-
-        foreach ($this as $that) {
-            if ($that === $item) {
-                $this->extract();
-                break;
-            } else {
-                $workingSet[] = $that;
-            }
+        if (!$this->isSorted) {
+            usort($this->list, [$this->sorter, 'compare']);
+            $this->list = array_reverse($this->list); // internal sort is largest at the end
+            $this->isSorted = true;
         }
 
-        foreach ($workingSet as $workingSetItem) {
-            $this->insert($workingSetItem);
-        }
+        return new ArrayIterator(array_reverse($this->list));
     }
 
     /**
-     * @param PackedItemList $packedItemList
+     * Number of items in list.
      */
-    public function removePackedItems(PackedItemList $packedItemList)
+    public function count(): int
     {
-        /** @var PackedItem $packedItem */
-        foreach (clone $packedItemList as $packedItem) {
-            $workingSet = [];
-
-            foreach ($this as $that) {
-                if ($that === $packedItem->getItem()) {
-                    $this->extract();
-                    break;
-                } else {
-                    $workingSet[] = $that;
-                }
-            }
-
-            foreach ($workingSet as $workingSetItem) {
-                $this->insert($workingSetItem);
-            }
-        }
-    }
-
-    /**
-     * @param Item $item
-     */
-    public function insert($item)
-    {
-        $this->hasConstrainedItems = $this->hasConstrainedItems || $item instanceof ConstrainedPlacementItem;
-        parent::insert($item);
+        return count($this->list);
     }
 
     /**
      * Does this list contain items with constrained placement criteria.
      */
-    public function hasConstrainedItems()
+    public function hasConstrainedItems(): bool
     {
         if (!isset($this->hasConstrainedItems)) {
             $this->hasConstrainedItems = false;
-            foreach (clone $this as $item) {
+            foreach ($this->list as $item) {
                 if ($item instanceof ConstrainedPlacementItem) {
                     $this->hasConstrainedItems = true;
                     break;

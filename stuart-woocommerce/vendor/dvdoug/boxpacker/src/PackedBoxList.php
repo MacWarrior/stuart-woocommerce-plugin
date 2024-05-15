@@ -4,166 +4,160 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
+
+use ArrayIterator;
+use Countable;
+use IteratorAggregate;
+use JsonSerializable;
+use ReturnTypeWillChange;
+use Traversable;
+
+use function count;
+use function reset;
+use function round;
+use function usort;
 
 /**
  * List of packed boxes.
- *
- * @author Doug Wright
  */
-class PackedBoxList extends \SplMinHeap
+class PackedBoxList implements IteratorAggregate, Countable, JsonSerializable
 {
     /**
-     * Average (mean) weight of boxes.
-     *
-     * @var float
+     * @var PackedBox[]
      */
-    protected $meanWeight;
+    private array $list = [];
 
-    /**
-     * Average (mean) item weight of boxes.
-     *
-     * @var float
-     */
-    protected $meanItemWeight;
+    private bool $isSorted = false;
 
-    /**
-     * Compare elements in order to place them correctly in the heap while sifting up.
-     *
-     * @see \SplMinHeap::compare()
-     *
-     * @param PackedBox $boxA
-     * @param PackedBox $boxB
-     *
-     * @return int
-     */
-    public function compare($boxA, $boxB)
+    private PackedBoxSorter $sorter;
+
+    public function __construct(PackedBoxSorter $sorter = null)
     {
-        $choice = $boxA->getItems()->count() - $boxB->getItems()->count();
-        if ($choice == 0) {
-            $choice = $boxA->getInnerVolume() - $boxB->getInnerVolume();
-        }
-        if ($choice == 0) {
-            $choice = $boxB->getWeight() - $boxA->getWeight();
-        }
-
-        if ($choice == 0) {
-            $choice = PHP_MAJOR_VERSION > 5 ? -1 : 1;
-        }
-
-        return $choice;
-
+        $this->sorter = $sorter ?: new DefaultPackedBoxSorter();
     }
 
     /**
-     * Reversed version of compare.
-     *
-     * @deprecated
-     *
-     * @param PackedBox $boxA
-     * @param PackedBox $boxB
-     *
-     * @return int
+     * @return Traversable<PackedBox>
      */
-    public function reverseCompare($boxA, $boxB)
+    public function getIterator(): Traversable
     {
-        $choice = $boxB->getItems()->count() - $boxA->getItems()->count();
-        if ($choice === 0) {
-            $choice = $boxA->getBox()->getInnerVolume() - $boxB->getBox()->getInnerVolume();
-        }
-        if ($choice === 0) {
-            $choice = $boxB->getWeight() - $boxA->getWeight();
+        if (!$this->isSorted) {
+            usort($this->list, [$this->sorter, 'compare']);
+            $this->isSorted = true;
         }
 
-        return $choice;
+        return new ArrayIterator($this->list);
+    }
+
+    /**
+     * Number of items in list.
+     */
+    public function count(): int
+    {
+        return count($this->list);
+    }
+
+    public function insert(PackedBox $item): void
+    {
+        $this->list[] = $item;
+        $this->isSorted = false;
+    }
+
+    /**
+     * Do a bulk insert.
+     *
+     * @internal
+     *
+     * @param PackedBox[] $boxes
+     */
+    public function insertFromArray(array $boxes): void
+    {
+        foreach ($boxes as $box) {
+            $this->insert($box);
+        }
+    }
+
+    /**
+     * @internal
+     */
+    public function top(): PackedBox
+    {
+        if (!$this->isSorted) {
+            usort($this->list, [$this->sorter, 'compare']);
+            $this->isSorted = true;
+        }
+
+        return reset($this->list);
     }
 
     /**
      * Calculate the average (mean) weight of the boxes.
-     *
-     * @return float
      */
-    public function getMeanWeight()
+    public function getMeanWeight(): float
     {
-        if (!is_null($this->meanWeight)) {
-            return $this->meanWeight;
+        $meanWeight = 0;
+
+        foreach ($this->list as $box) {
+            $meanWeight += $box->getWeight();
         }
 
-        foreach (clone $this as $box) {
-            $this->meanWeight += $box->getWeight();
-        }
-
-        return $this->meanWeight /= $this->count();
+        return $meanWeight / count($this->list);
     }
-
 
     /**
      * Calculate the average (mean) weight of the boxes.
-     *
-     * @return float
      */
-    public function getMeanItemWeight()
+    public function getMeanItemWeight(): float
     {
-        if (!is_null($this->meanItemWeight)) {
-            return $this->meanItemWeight;
+        $meanWeight = 0;
+
+        foreach ($this->list as $box) {
+            $meanWeight += $box->getItemWeight();
         }
 
-        foreach (clone $this as $box) {
-            $this->meanItemWeight += $box->getItemWeight();
-        }
-
-        return $this->meanItemWeight /= $this->count();
+        return $meanWeight / count($this->list);
     }
 
     /**
      * Calculate the variance in weight between these boxes.
-     *
-     * @return float
      */
-    public function getWeightVariance()
+    public function getWeightVariance(): float
     {
         $mean = $this->getMeanWeight();
 
         $weightVariance = 0;
-        foreach (clone $this as $box) {
-            $weightVariance += pow($box->getWeight() - $mean, 2);
+        foreach ($this->list as $box) {
+            $weightVariance += ($box->getWeight() - $mean) ** 2;
         }
 
-        return round($weightVariance / $this->count(), 1);
+        return round($weightVariance / count($this->list), 1);
     }
 
     /**
      * Get volume utilisation of the set of packed boxes.
-     *
-     * @return float
      */
-    public function getVolumeUtilisation()
+    public function getVolumeUtilisation(): float
     {
         $itemVolume = 0;
         $boxVolume = 0;
 
-        /** @var PackedBox $box */
-        foreach (clone $this as $box) {
-            $boxVolume += $box->getBox()->getInnerVolume();
+        foreach ($this as $box) {
+            $boxVolume += $box->getInnerVolume();
 
-            /** @var Item $item */
-            foreach (clone $box->getItems() as $item) {
-                $itemVolume += $item->getVolume();
+            foreach ($box->getItems() as $item) {
+                $itemVolume += ($item->getItem()->getWidth() * $item->getItem()->getLength() * $item->getItem()->getDepth());
             }
         }
 
         return round($itemVolume / $boxVolume * 100, 1);
     }
 
-    /**
-     * Do a bulk insert.
-     *
-     * @param array $boxes
-     */
-    public function insertFromArray(array $boxes)
+    #[ReturnTypeWillChange]
+    public function jsonSerialize()/* : mixed */
     {
-        foreach ($boxes as $box) {
-            $this->insert($box);
-        }
+        return $this->list;
     }
 }

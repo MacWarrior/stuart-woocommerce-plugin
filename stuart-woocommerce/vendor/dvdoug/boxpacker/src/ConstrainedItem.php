@@ -4,6 +4,8 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
 
 /**
@@ -11,17 +13,11 @@ namespace DVDoug\BoxPacker;
  * need this additional functionality as it will slow down the packing algorithm.
  *
  * @deprecated use ConstrainedPlacementItem instead which has additional flexibility
- * @author Doug Wright
  */
 interface ConstrainedItem extends Item
 {
     /**
      * Hook for user implementation of item-specific constraints, e.g. max <x> batteries per box.
-     *
-     * @param ItemList $alreadyPackedItems
-     * @param Box      $box
-     *
-     * @return bool
      */
-    public function canBePackedInBox(ItemList $alreadyPackedItems, Box $box);
+    public function canBePackedInBox(PackedItemList $alreadyPackedItems, Box $box): bool;
 }

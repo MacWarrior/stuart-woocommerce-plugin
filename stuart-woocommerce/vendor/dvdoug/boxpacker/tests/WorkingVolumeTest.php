@@ -4,32 +4,42 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
 
 use PHPUnit\Framework\TestCase;
+
+use function json_decode;
+use function json_encode;
 
 /**
  * @covers \DVDoug\BoxPacker\WorkingVolume
  */
 class WorkingVolumeTest extends TestCase
 {
-    public function testDimensions()
+    private WorkingVolume $volume;
+
+    protected function setUp(): void
     {
-        $volume = new WorkingVolume(1, 2, 3, 4);
-        self::assertSame(1, $volume->getInnerWidth());
-        self::assertSame(1, $volume->getOuterWidth());
-        self::assertSame(2, $volume->getInnerLength());
-        self::assertSame(2, $volume->getOuterLength());
-        self::assertSame(3, $volume->getInnerDepth());
-        self::assertSame(3, $volume->getOuterDepth());
-        self::assertSame(0, $volume->getEmptyWeight());
-        self::assertSame(4, $volume->getMaxWeight());
+        $this->volume = new WorkingVolume(1, 2, 3, 4);
     }
 
-    public function testSerialize()
+    public function testDimensions(): void
     {
-        $volume = new WorkingVolume(1, 2, 3, 4);
-        $serializedDataKeys = json_decode(json_encode($volume), true);
+        self::assertSame(1, $this->volume->getInnerWidth());
+        self::assertSame(1, $this->volume->getOuterWidth());
+        self::assertSame(2, $this->volume->getInnerLength());
+        self::assertSame(2, $this->volume->getOuterLength());
+        self::assertSame(3, $this->volume->getInnerDepth());
+        self::assertSame(3, $this->volume->getOuterDepth());
+        self::assertSame(0, $this->volume->getEmptyWeight());
+        self::assertSame(4, $this->volume->getMaxWeight());
+    }
+
+    public function testSerialize(): void
+    {
+        $serializedDataKeys = json_decode(json_encode($this->volume), true);
         self::assertArrayHasKey('reference', $serializedDataKeys);
         self::assertArrayHasKey('width', $serializedDataKeys);
         self::assertArrayHasKey('length', $serializedDataKeys);

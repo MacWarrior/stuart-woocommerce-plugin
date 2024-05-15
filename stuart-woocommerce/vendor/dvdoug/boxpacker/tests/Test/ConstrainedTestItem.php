@@ -4,12 +4,18 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker\Test;
 
 use DVDoug\BoxPacker\Box;
 use DVDoug\BoxPacker\ConstrainedItem;
-use DVDoug\BoxPacker\Item;
-use DVDoug\BoxPacker\ItemList;
+use DVDoug\BoxPacker\PackedItem;
+use DVDoug\BoxPacker\PackedItemList;
+
+use function array_filter;
+use function count;
+use function iterator_to_array;
 
 class ConstrainedTestItem extends TestItem implements ConstrainedItem
 {
@@ -18,18 +24,12 @@ class ConstrainedTestItem extends TestItem implements ConstrainedItem
      */
     public static $limit = 3;
 
-    /**
-     * @param ItemList $alreadyPackedItems
-     * @param Box            $box
-     *
-     * @return bool
-     */
-    public function canBePackedInBox(ItemList $alreadyPackedItems, Box $box)
+    public function canBePackedInBox(PackedItemList $alreadyPackedItems, Box $box): bool
     {
         $alreadyPackedType = array_filter(
             iterator_to_array($alreadyPackedItems, false),
-            function (Item $item) {
-                return $item->getDescription() === $this->getDescription();
+            function (PackedItem $item) {
+                return $item->getItem()->getDescription() === $this->getDescription();
             }
         );
 

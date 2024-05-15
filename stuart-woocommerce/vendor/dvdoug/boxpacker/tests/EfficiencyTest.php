@@ -4,11 +4,17 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
 
 use DVDoug\BoxPacker\Test\TestBox;
 use DVDoug\BoxPacker\Test\TestItem;
 use PHPUnit\Framework\TestCase;
+
+use function fclose;
+use function fgetcsv;
+use function fopen;
 
 /**
  * @coversNothing
@@ -20,16 +26,15 @@ class EfficiencyTest extends TestCase
      * @group efficiency
      */
     public function testCanPackRepresentativeLargerSamples(
-        $test,
-        $boxes,
-        $items,
-        $expectedBoxes2D,
-        $expectedBoxes3D,
-        $expectedWeightVariance2D,
-        $expectedWeightVariance3D,
-        $expectedVolumeUtilisation2D,
-        $expectedVolumeUtilisation3D
-    ) {
+        array $boxes,
+        array $items,
+        int $expectedBoxes2D,
+        int $expectedBoxes3D,
+        float $expectedWeightVariance2D,
+        float $expectedWeightVariance3D,
+        float $expectedVolumeUtilisation2D,
+        float $expectedVolumeUtilisation3D
+    ): void {
         $expectedItemCount = 0;
 
         $packer2D = new Packer();
@@ -45,11 +50,11 @@ class EfficiencyTest extends TestCase
             $packer2D->addItem(
                 new TestItem(
                     $item['name'],
-                    (int) $item['width'],
-                    (int) $item['length'],
-                    (int) $item['depth'],
-                    (int) $item['weight'],
-                    true
+                    $item['width'],
+                    $item['length'],
+                    $item['depth'],
+                    $item['weight'],
+                    Rotation::KeepFlat
                 ),
                 (int) $item['qty']
             );
@@ -57,11 +62,11 @@ class EfficiencyTest extends TestCase
             $packer3D->addItem(
                 new TestItem(
                     $item['name'],
-                    (int) $item['width'],
-                    (int) $item['length'],
-                    (int) $item['depth'],
-                    (int) $item['weight'],
-                    false
+                    $item['width'],
+                    $item['length'],
+                    $item['depth'],
+                    $item['weight'],
+                    Rotation::BestFit
                 ),
                 (int) $item['qty']
             );
@@ -70,12 +75,12 @@ class EfficiencyTest extends TestCase
         $packedBoxes3D = $packer3D->pack();
 
         $packedItemCount2D = 0;
-        foreach (clone $packedBoxes2D as $packedBox) {
+        foreach ($packedBoxes2D as $packedBox) {
             $packedItemCount2D += $packedBox->getItems()->count();
         }
 
         $packedItemCount3D = 0;
-        foreach (clone $packedBoxes3D as $packedBox) {
+        foreach ($packedBoxes3D as $packedBox) {
             $packedItemCount3D += $packedBox->getItems()->count();
         }
 
@@ -90,7 +95,7 @@ class EfficiencyTest extends TestCase
         self::assertEquals($expectedWeightVariance3D, $packedBoxes3D->getWeightVariance());
     }
 
-    public function getSamples()
+    public static function getSamples(): array
     {
         $expected = ['2D' => [], '3D' => []];
 
@@ -123,33 +128,32 @@ class EfficiencyTest extends TestCase
         while ($data = fgetcsv($itemData)) {
             if (isset($tests[$data[0]])) {
                 $tests[$data[0]]['items'][] = [
-                    'qty' => $data[1],
+                    'qty' => (int) $data[1],
                     'name' => $data[2],
-                    'width' => $data[3],
-                    'length' => $data[4],
-                    'depth' => $data[5],
-                    'weight' => $data[6],
+                    'width' => (int) $data[3],
+                    'length' => (int) $data[4],
+                    'depth' => (int) $data[5],
+                    'weight' => (int) $data[6],
                 ];
             } else {
                 $tests[$data[0]] = [
-                    'test' => $data[0],
                     'boxes' => $boxes,
                     'items' => [
                         [
-                            'qty' => $data[1],
+                            'qty' => (int) $data[1],
                             'name' => $data[2],
-                            'width' => $data[3],
-                            'length' => $data[4],
-                            'depth' => $data[5],
-                            'weight' => $data[6],
+                            'width' => (int) $data[3],
+                            'length' => (int) $data[4],
+                            'depth' => (int) $data[5],
+                            'weight' => (int) $data[6],
                         ],
                     ],
                     'expected2D' => (int) $expected['2D'][$data[0]]['boxes'],
                     'expected3D' => (int) $expected['3D'][$data[0]]['boxes'],
-                    'weightVariance2D' => $expected['2D'][$data[0]]['weightVariance'],
-                    'weightVariance3D' => $expected['3D'][$data[0]]['weightVariance'],
-                    'volumeUtilisation2D' => $expected['2D'][$data[0]]['utilisation'],
-                    'volumeUtilisation3D' => $expected['3D'][$data[0]]['utilisation'],
+                    'weightVariance2D' => (float) $expected['2D'][$data[0]]['weightVariance'],
+                    'weightVariance3D' => (float) $expected['3D'][$data[0]]['weightVariance'],
+                    'volumeUtilisation2D' => (float) $expected['2D'][$data[0]]['utilisation'],
+                    'volumeUtilisation3D' => (float) $expected['3D'][$data[0]]['utilisation'],
                 ];
             }
         }

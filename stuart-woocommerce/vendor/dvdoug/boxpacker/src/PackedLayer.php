@@ -4,48 +4,30 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
+
+use function max;
+use function min;
 
 /**
  * A packed layer.
- *
- * @author Doug Wright
  * @internal
  */
 class PackedLayer
 {
     /**
-     * @var int
-     */
-    private $startDepth = PHP_INT_MAX;
-
-    /**
-     * @var int
-     */
-    private $endDepth = 0;
-
-    /**
-     * @var int
-     */
-    private $weight = 0;
-    /**
-     * Items packed into this layer.
-     *
      * @var PackedItem[]
      */
-    protected $items = [];
+    protected array $items = [];
 
     /**
      * Add a packed item to this layer.
-     *
-     * @param PackedItem $packedItem
      */
-    public function insert(PackedItem $packedItem)
+    public function insert(PackedItem $packedItem): void
     {
         $this->items[] = $packedItem;
-        $this->weight += $packedItem->getItem()->getWeight();
-        $this->startDepth = min($this->startDepth, $packedItem->getZ());
-        $this->endDepth = max($this->endDepth, $packedItem->getZ() + $packedItem->getDepth());
     }
 
     /**
@@ -53,7 +35,7 @@ class PackedLayer
      *
      * @return PackedItem[]
      */
-    public function getItems()
+    public function getItems(): array
     {
         return $this->items;
     }
@@ -63,46 +45,157 @@ class PackedLayer
      *
      * @return int mm^2
      */
-    public function getFootprint()
+    public function getFootprint(): int
     {
-        $layerWidth = 0;
-        $layerLength = 0;
+        return $this->getWidth() * $this->getLength();
+    }
 
-        foreach ($this->items as $item) {
-            $layerWidth = max($layerWidth, $item->getX() + $item->getWidth());
-            $layerLength = max($layerLength, $item->getY() + $item->getLength());
+    public function getStartX(): int
+    {
+        if (!$this->items) {
+            return 0;
         }
 
-        return $layerWidth * $layerLength;
+        $values = [];
+        foreach ($this->items as $item) {
+            $values[] = $item->getX();
+        }
+
+        return min($values);
     }
 
-    /**
-     * Calculate start depth of this layer.
-     *
-     * @return int mm
-     */
-    public function getStartDepth()
+    public function getEndX(): int
     {
-        return $this->startDepth;
+        if (!$this->items) {
+            return 0;
+        }
+
+        $values = [];
+        foreach ($this->items as $item) {
+            $values[] = $item->getX() + $item->getWidth();
+        }
+
+        return max($values);
     }
 
-    /**
-     * Calculate depth of this layer.
-     *
-     * @return int mm
-     */
-    public function getDepth()
+    public function getWidth(): int
     {
-        return $this->endDepth - $this->getStartDepth();
+        if (!$this->items) {
+            return 0;
+        }
+
+        $start = [];
+        $end = [];
+        foreach ($this->items as $item) {
+            $start[] = $item->getX();
+            $end[] = $item->getX() + $item->getWidth();
+        }
+
+        return max($end) - min($start);
     }
 
-    /**
-     * Calculate weight of this layer.
-     *
-     * @return int weight in grams
-     */
-    public function getWeight()
+    public function getStartY(): int
     {
-        return $this->weight;
+        if (!$this->items) {
+            return 0;
+        }
+
+        $values = [];
+        foreach ($this->items as $item) {
+            $values[] = $item->getY();
+        }
+
+        return min($values);
+    }
+
+    public function getEndY(): int
+    {
+        if (!$this->items) {
+            return 0;
+        }
+
+        $values = [];
+        foreach ($this->items as $item) {
+            $values[] = $item->getY() + $item->getLength();
+        }
+
+        return max($values);
+    }
+
+    public function getLength(): int
+    {
+        if (!$this->items) {
+            return 0;
+        }
+
+        $start = [];
+        $end = [];
+        foreach ($this->items as $item) {
+            $start[] = $item->getY();
+            $end[] = $item->getY() + $item->getLength();
+        }
+
+        return max($end) - min($start);
+    }
+
+    public function getStartZ(): int
+    {
+        if (!$this->items) {
+            return 0;
+        }
+
+        $values = [];
+        foreach ($this->items as $item) {
+            $values[] = $item->getZ();
+        }
+
+        return min($values);
+    }
+
+    public function getEndZ(): int
+    {
+        if (!$this->items) {
+            return 0;
+        }
+
+        $values = [];
+        foreach ($this->items as $item) {
+            $values[] = $item->getZ() + $item->getDepth();
+        }
+
+        return max($values);
+    }
+
+    public function getDepth(): int
+    {
+        if (!$this->items) {
+            return 0;
+        }
+
+        $start = [];
+        $end = [];
+        foreach ($this->items as $item) {
+            $start[] = $item->getZ();
+            $end[] = $item->getZ() + $item->getDepth();
+        }
+
+        return max($end) - min($start);
+    }
+
+    public function getWeight(): int
+    {
+        $weight = 0;
+        foreach ($this->items as $item) {
+            $weight += $item->getItem()->getWeight();
+        }
+
+        return $weight;
+    }
+
+    public function merge(self $otherLayer): void
+    {
+        foreach ($otherLayer->items as $packedItem) {
+            $this->items[] = $packedItem;
+        }
     }
 }

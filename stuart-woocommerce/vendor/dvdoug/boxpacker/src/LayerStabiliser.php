@@ -4,12 +4,15 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
+
+use function usort;
 
 /**
  * Applies load stability to generated result.
  *
- * @author Doug Wright
  * @internal
  */
 class LayerStabiliser
@@ -19,7 +22,7 @@ class LayerStabiliser
      *
      * @return PackedLayer[]
      */
-    public function stabilise(array $packedLayers)
+    public function stabilise(array $packedLayers): array
     {
         // first re-order according to footprint
         $stabilisedLayers = [];
@@ -28,7 +31,7 @@ class LayerStabiliser
         // then for each item in the layer, re-calculate each item's z position
         $currentZ = 0;
         foreach ($packedLayers as $oldZLayer) {
-            $oldZStart = $oldZLayer->getStartDepth();
+            $oldZStart = $oldZLayer->getStartZ();
             $newZLayer = new PackedLayer();
             foreach ($oldZLayer->getItems() as $oldZItem) {
                 $newZ = $oldZItem->getZ() - $oldZStart + $currentZ;
@@ -43,14 +46,8 @@ class LayerStabiliser
         return $stabilisedLayers;
     }
 
-    /**
-     * @param PackedLayer $layerA
-     * @param PackedLayer $layerB
-     *
-     * @return int
-     */
-    private function compare(PackedLayer $layerA, PackedLayer $layerB)
+    private function compare(PackedLayer $layerA, PackedLayer $layerB): int
     {
-        return ($layerB->getFootprint() - $layerA->getFootprint()) ?: ($layerB->getDepth() - $layerA->getDepth());
+        return ($layerB->getFootprint() <=> $layerA->getFootprint()) ?: ($layerB->getDepth() <=> $layerA->getDepth());
     }
 }

@@ -4,74 +4,72 @@
  *
  * @author Doug Wright
  */
+declare(strict_types=1);
+
 namespace DVDoug\BoxPacker;
 
 use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Psr\Log\NullLogger;
+use SplObjectStorage;
+
+use function count;
+use function usort;
+
+use const PHP_INT_MAX;
 
 /**
  * Actual packer.
- *
- * @author Doug Wright
  */
 class Packer implements LoggerAwareInterface
 {
-    use LoggerAwareTrait;
+    private LoggerInterface $logger;
+
+    protected int $maxBoxesToBalanceWeight = 12;
+
+    protected ItemList $items;
+
+    protected BoxList $boxes;
 
     /**
-     * Number of boxes at which balancing weight is deemed not worth it.
-     *
-     * @var int
+     * @var SplObjectStorage<Box, int>
      */
-    protected $maxBoxesToBalanceWeight = 12;
+    protected SplObjectStorage $boxQuantitiesAvailable;
 
-    /**
-     * List of items to be packed.
-     *
-     * @var ItemList
-     */
-    protected $items;
+    protected PackedBoxSorter $packedBoxSorter;
 
-    /**
-     * List of box sizes available to pack items into.
-     *
-     * @var BoxList
-     */
-    protected $boxes;
+    private bool $beStrictAboutItemOrdering = false;
 
-    /**
-     * Constructor.
-     */
     public function __construct()
     {
         $this->items = new ItemList();
         $this->boxes = new BoxList();
+        $this->boxQuantitiesAvailable = new SplObjectStorage();
+        $this->packedBoxSorter = new DefaultPackedBoxSorter();
 
         $this->logger = new NullLogger();
     }
 
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+    }
+
     /**
      * Add item to be packed.
-     *
-     * @param Item $item
-     * @param int  $qty
      */
-    public function addItem(Item $item, $qty = 1)
+    public function addItem(Item $item, int $qty = 1): void
     {
-        for ($i = 0; $i < $qty; ++$i) {
-            $this->items->insert($item);
-        }
+        $this->items->insert($item, $qty);
         $this->logger->log(LogLevel::INFO, "added {$qty} x {$item->getDescription()}", ['item' => $item]);
     }
 
     /**
      * Set a list of items all at once.
-     *
-     * @param iterable|Item[] $items
+     * @param iterable<Item> $items
      */
-    public function setItems($items)
+    public function setItems(iterable $items): void
     {
         if ($items instanceof ItemList) {
             $this->items = clone $items;
@@ -85,58 +83,71 @@ class Packer implements LoggerAwareInterface
 
     /**
      * Add box size.
-     *
-     * @param Box $box
      */
-    public function addBox(Box $box)
+    public function addBox(Box $box): void
     {
         $this->boxes->insert($box);
+        $this->setBoxQuantity($box, $box instanceof LimitedSupplyBox ? $box->getQuantityAvailable() : PHP_INT_MAX);
         $this->logger->log(LogLevel::INFO, "added box {$box->getReference()}", ['box' => $box]);
     }
 
     /**
      * Add a pre-prepared set of boxes all at once.
-     *
-     * @param BoxList $boxList
      */
-    public function setBoxes(BoxList $boxList)
+    public function setBoxes(BoxList $boxList): void
     {
-        $this->boxes = clone $boxList;
+        $this->boxes = $boxList;
+        foreach ($this->boxes as $box) {
+            $this->setBoxQuantity($box, $box instanceof LimitedSupplyBox ? $box->getQuantityAvailable() : PHP_INT_MAX);
+        }
+    }
+
+    /**
+     * Set the quantity of this box type available.
+     */
+    public function setBoxQuantity(Box $box, int $qty): void
+    {
+        $this->boxQuantitiesAvailable[$box] = $qty;
     }
 
     /**
      * Number of boxes at which balancing weight is deemed not worth the extra computation time.
-     *
-     * @return int
      */
-    public function getMaxBoxesToBalanceWeight()
+    public function getMaxBoxesToBalanceWeight(): int
     {
         return $this->maxBoxesToBalanceWeight;
     }
 
     /**
      * Number of boxes at which balancing weight is deemed not worth the extra computation time.
-     *
-     * @param int $maxBoxesToBalanceWeight
      */
-    public function setMaxBoxesToBalanceWeight($maxBoxesToBalanceWeight)
+    public function setMaxBoxesToBalanceWeight(int $maxBoxesToBalanceWeight): void
     {
         $this->maxBoxesToBalanceWeight = $maxBoxesToBalanceWeight;
     }
 
-    /**
-     * Pack items into boxes.
-     *
-     * @return PackedBoxList
-     */
-    public function pack()
+    public function setPackedBoxSorter(PackedBoxSorter $packedBoxSorter): void
     {
-        $this->sanityPrecheck();
-        $packedBoxes = $this->doVolumePacking();
+        $this->packedBoxSorter = $packedBoxSorter;
+    }
 
-        //If we have multiple boxes, try and optimise/even-out weight distribution
-        if ($packedBoxes->count() > 1 && $packedBoxes->count() <= $this->maxBoxesToBalanceWeight) {
-            $redistributor = new WeightRedistributor($this->boxes);
+    public function beStrictAboutItemOrdering(bool $beStrict): void
+    {
+        $this->beStrictAboutItemOrdering = $beStrict;
+    }
+
+    /**
+     * Pack items into boxes using built-in heuristics for the best solution.
+     */
+    public function pack(): PackedBoxList
+    {
+        $this->logger->log(LogLevel::INFO, '[PACKING STARTED]');
+
+        $packedBoxes = $this->doBasicPacking();
+
+        // If we have multiple boxes, try and optimise/even-out weight distribution
+        if (!$this->beStrictAboutItemOrdering && $packedBoxes->count() > 1 && $packedBoxes->count() <= $this->maxBoxesToBalanceWeight) {
+            $redistributor = new WeightRedistributor($this->boxes, $this->packedBoxSorter, $this->boxQuantitiesAvailable);
             $redistributor->setLogger($this->logger);
             $packedBoxes = $redistributor->redistributeWeight($packedBoxes);
         }
@@ -147,49 +158,48 @@ class Packer implements LoggerAwareInterface
     }
 
     /**
-     * Pack items into boxes using the principle of largest volume item first.
-     *
-     * @throws NoBoxesAvailableException
-     *
-     * @return PackedBoxList
+     * @internal
      */
-    public function doVolumePacking($singlePassMode = false, $enforceSingleBox = false)
+    public function doBasicPacking(bool $enforceSingleBox = false): PackedBoxList
     {
-        $packedBoxes = new PackedBoxList();
+        $packedBoxes = new PackedBoxList($this->packedBoxSorter);
 
-        //Keep going until everything packed
+        // Keep going until everything packed
         while ($this->items->count()) {
             $packedBoxesIteration = [];
 
-            //Loop through boxes starting with smallest, see what happens
+            // Loop through boxes starting with smallest, see what happens
             foreach ($this->getBoxList($enforceSingleBox) as $box) {
                 $volumePacker = new VolumePacker($box, $this->items);
                 $volumePacker->setLogger($this->logger);
-                $volumePacker->setSinglePassMode($singlePassMode);
+                $volumePacker->beStrictAboutItemOrdering($this->beStrictAboutItemOrdering);
                 $packedBox = $volumePacker->pack();
                 if ($packedBox->getItems()->count()) {
                     $packedBoxesIteration[] = $packedBox;
 
-                    //Have we found a single box that contains everything?
+                    // Have we found a single box that contains everything?
                     if ($packedBox->getItems()->count() === $this->items->count()) {
+                        $this->logger->log(LogLevel::DEBUG, "Single box found for remaining {$this->items->count()} items");
                         break;
                     }
                 }
             }
 
-            try {
-                //Find best box of iteration, and remove packed items from unpacked list
-                $bestBox = $this->findBestBoxFromIteration($packedBoxesIteration);
-            } catch (NoBoxesAvailableException $e) {
-                if ($enforceSingleBox) {
-                    return new PackedBoxList();
-                }
-                throw $e;
+            if (count($packedBoxesIteration) > 0) {
+                // Find best box of iteration, and remove packed items from unpacked list
+                usort($packedBoxesIteration, [$this->packedBoxSorter, 'compare']);
+                $bestBox = $packedBoxesIteration[0];
+
+                $this->items->removePackedItems($bestBox->getItems());
+
+                $packedBoxes->insert($bestBox);
+                $this->boxQuantitiesAvailable[$bestBox->getBox()] = $this->boxQuantitiesAvailable[$bestBox->getBox()] - 1;
+            } elseif (!$enforceSingleBox) {
+                throw new NoBoxesAvailableException("No boxes could be found for item '{$this->items->top()->getDescription()}'", $this->items->top());
+            } else {
+                $this->logger->log(LogLevel::INFO, "{$this->items->count()} unpackable items found");
+                break;
             }
-
-            $this->items->removePackedItems($bestBox->getPackedItems());
-
-            $packedBoxes->insert($bestBox);
         }
 
         return $packedBoxes;
@@ -199,74 +209,32 @@ class Packer implements LoggerAwareInterface
      * Get a "smart" ordering of the boxes to try packing items into. The initial BoxList is already sorted in order
      * so that the smallest boxes are evaluated first, but this means that time is spent on boxes that cannot possibly
      * hold the entire set of items due to volume limitations. These should be evaluated first.
+     *
+     * @return iterable<Box>
      */
-    protected function getBoxList($enforceSingleBox = false)
+    protected function getBoxList(bool $enforceSingleBox = false): iterable
     {
+        $this->logger->log(LogLevel::INFO, 'Determining box search pattern', ['enforceSingleBox' => $enforceSingleBox]);
         $itemVolume = 0;
-        foreach (clone $this->items as $item) {
+        foreach ($this->items as $item) {
             $itemVolume += $item->getWidth() * $item->getLength() * $item->getDepth();
         }
+        $this->logger->log(LogLevel::DEBUG, 'Item volume', ['itemVolume' => $itemVolume]);
 
         $preferredBoxes = [];
         $otherBoxes = [];
-        foreach (clone $this->boxes as $box) {
-            if ($box->getInnerWidth() * $box->getInnerLength() * $box->getInnerDepth() >= $itemVolume) {
-                $preferredBoxes[] = $box;
-            } elseif (!$enforceSingleBox) {
-                $otherBoxes[] = $box;
-            }
-        }
-
-        return array_merge($preferredBoxes, $otherBoxes);
-    }
-
-    /**
-     * @param PackedBox[] $packedBoxes
-     */
-    protected function findBestBoxFromIteration(array $packedBoxes)
-    {
-        if (count($packedBoxes) === 0) {
-            throw new NoBoxesAvailableException("No boxes could be found for item '{$this->items->top()->getDescription()}'", $this->items->top());
-        }
-
-        usort($packedBoxes, [$this, 'compare']);
-
-        return $packedBoxes[0];
-    }
-
-    private function sanityPrecheck()
-    {
-        /** @var Item $item */
-        foreach (clone $this->items as $item) {
-            $possibleFits = 0;
-
-            /** @var Box $box */
-            foreach (clone $this->boxes as $box) {
-                if ($item->getWeight() <= ($box->getMaxWeight() - $box->getEmptyWeight())) {
-                    $possibleFits += count((new OrientatedItemFactory($box))->getPossibleOrientationsInEmptyBox($item));
+        foreach ($this->boxes as $box) {
+            if ($this->boxQuantitiesAvailable[$box] > 0) {
+                if ($box->getInnerWidth() * $box->getInnerLength() * $box->getInnerDepth() >= $itemVolume) {
+                    $preferredBoxes[] = $box;
+                } elseif (!$enforceSingleBox) {
+                    $otherBoxes[] = $box;
                 }
             }
-
-            if ($possibleFits === 0) {
-                throw new ItemTooLargeException("Item '{$item->getDescription()}' is too large to fit into any box", $item);
-            }
-        }
-    }
-
-    private static function compare(PackedBox $boxA, PackedBox $boxB)
-    {
-        $choice = $boxB->getItems()->count() - $boxA->getItems()->count();
-
-        if ($choice == 0) {
-            $choice = $boxB->getVolumeUtilisation() - $boxA->getVolumeUtilisation();
-        }
-        if ($choice == 0) {
-            $choice = $boxB->getUsedVolume() - $boxA->getUsedVolume();
-        }
-        if ($choice == 0) {
-            $choice = PHP_MAJOR_VERSION > 5 ? -1 : 1;
         }
 
-        return $choice;
+        $this->logger->log(LogLevel::INFO, 'Box search pattern complete', ['preferredBoxCount' => count($preferredBoxes), 'otherBoxCount' => count($otherBoxes)]);
+
+        return [...$preferredBoxes, ...$otherBoxes];
     }
 }
