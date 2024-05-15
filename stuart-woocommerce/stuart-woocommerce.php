@@ -6,7 +6,7 @@
     Author: Oxygenz
     Original Author: Jose Hervas Diaz - https://github.com/StuartApp/stuart-woocommerce-plugin
     Forked on: 2023-02-09
-    Version: 1.3
+    Version: 1.3.1
     License : GPL
     Text Domain: stuart-delivery
     Domain Path: /languages/
@@ -24,7 +24,7 @@ require_once(plugin_dir_path(__FILE__) . '/interfaces/plugin-controller.php');
 
 class Stuart implements MainPluginController
 {
-    public $version = '1.3';
+    public $version = '1.3.1';
     public $settings;
     public $file = __FILE__;
     private static $instance;
